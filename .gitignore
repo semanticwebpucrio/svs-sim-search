@@ -164,6 +164,9 @@ app/images/*
 app/input/*
 !app/input/.keep
 
+app/dl_models/*
+!app/dl_models/.keep
+
 # betting
 app/services/betting/*.json
 

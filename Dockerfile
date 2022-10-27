@@ -19,9 +19,10 @@ RUN pip3 install --no-cache-dir --upgrade pip \
 
 WORKDIR ${PYTHONPATH}
 
-ADD . .
+COPY . .
+
+RUN chmod +x entrypoint.sh
 
 EXPOSE ${PORT}
 
-# create entrypoint.sh
-CMD sleep 15;python app/main.py
+ENTRYPOINT ["sh", "/opt/entrypoint.sh"]
