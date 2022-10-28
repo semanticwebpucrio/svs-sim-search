@@ -1,7 +1,7 @@
 import uvicorn
 import app.shared_context as sc
 from fastapi import FastAPI
-from app.routers import indexing
+from app.routers import indexing, search
 
 
 def get_application() -> FastAPI:
@@ -11,6 +11,7 @@ def get_application() -> FastAPI:
         version="0.0.1",
     )
     app.include_router(indexing.router)
+    app.include_router(search.router)
 
     @app.on_event("startup")
     def startup_event():

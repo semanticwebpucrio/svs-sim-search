@@ -2,32 +2,10 @@ version: "3.9"
 
 services:
   redis:
-    image: redis:7.0.5-bullseye
+    image: redislabs/redisearch:2.6.0
     ports:
       - "6379:6379"
-    command: redis-server --maxmemory 1gb --maxmemory-policy allkeys-lru
-
-  api:
-    restart: "no"
-    command: api
-    env_file:
-      - .env
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - .:/opt/
-    ports:
-      - "8080:8080"
-    networks:
-      - default
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
-    depends_on:
-      - redis
-    stdin_open: true
-    tty: true
+    command: redis-server --maxmemory 1gb --maxmemory-policy allkeys-lru --loadmodule /usr/lib/redis/modules/redisearch.so
 
   txt_encoder:
     restart: "no"
@@ -49,3 +27,26 @@ services:
       - 8.8.4.4
     depends_on:
       - redis
+
+  api:
+    restart: "no"
+    command: api
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/opt/
+    ports:
+      - "8080:8080"
+    networks:
+      - default
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    depends_on:
+      - redis
+      - txt_encoder
+    stdin_open: true
+    tty: true

@@ -2,7 +2,26 @@ import numpy as np
 from time import sleep
 from pathlib import Path
 import app.shared_context as sc
+from redis.commands.search.field import VectorField, TextField
 from sentence_transformers import SentenceTransformer
+
+
+def create_flat_index(vector_field_name, number_of_vectors):
+    sc.api_redis_cli.ft().create_index([
+        VectorField(
+            vector_field_name,
+            "FLAT",
+            {
+                "TYPE": "FLOAT32",
+                "DIM": sc.TEXT_EMBEDDING_DIMENSION,
+                "DISTANCE_METRIC": sc.TEXT_DISTANCE_METRIC,
+                "INITIAL_CAP": number_of_vectors,
+                "BLOCK_SIZE": number_of_vectors,
+            }
+        ),
+        TextField("id"),
+        TextField("sentence"),
+    ])
 
 
 def run():
@@ -16,10 +35,17 @@ def run():
     p_txt.subscribe(sc.QUEUE_TXT)
 
     sc.api_logger.info("starting loop")
+    num_embeddings, num_empty_loops = 0, 0
     while True:
         msg = p_txt.get_message()
         if not msg:
-            sc.api_logger.info(f"empty {sc.QUEUE_TXT} - skipping")
+            sc.api_logger.info(f"empty {sc.QUEUE_TXT} - skipping #{num_empty_loops}")
+            if num_embeddings > 0:
+                num_empty_loops += 1
+                if num_empty_loops >= sc.MAX_LOOPS_WITHOUT_DATA:
+                    sc.api_logger.info(f"creating index on redis")
+                    create_flat_index(sc.TEXT_EMBEDDING_FIELD_NAME, num_embeddings)
+                    num_embeddings, num_empty_loops = 0, 0
             sleep(0.5)
             continue
         try:
@@ -28,10 +54,13 @@ def run():
             sc.api_logger.info(f"unicode-decode error detected - skipping")
             sleep(0.5)
             continue
-        embeddings = model.encode(sentence)
+        embeddings = model.encode(sentence[:sc.TEXT_MAX_LENGTH])
         sc.api_logger.info(f"key: {key} | embeddings shape: {embeddings.shape}")
-        embeddings_str = np.array2string(embeddings, precision=10, separator=',', suppress_small=True)
-        sc.api_redis_cli.set(f"txt-{key}", embeddings_str)
+        embeddings_bytes = embeddings.astype(np.float32).tobytes()
+        sc.api_redis_cli.hset(
+            f"txt-{key}", mapping={"embedding": embeddings_bytes, "id": key, "sentence": sentence[:sc.TEXT_MAX_LENGTH]}
+        )
+        num_embeddings += 1
 
 
 if __name__ == "__main__":

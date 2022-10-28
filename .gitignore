@@ -167,6 +167,9 @@ app/input/*
 app/dl_models/*
 !app/dl_models/.keep
 
+app/notebooks/*
+!app/notebooks/.keep
+
 # betting
 app/services/betting/*.json
 
