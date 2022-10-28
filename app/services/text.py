@@ -56,7 +56,7 @@ def run():
             continue
         embeddings = model.encode(sentence[:sc.TEXT_MAX_LENGTH])
         sc.api_logger.info(f"key: {key} | embeddings shape: {embeddings.shape}")
-        embeddings_bytes = embeddings.astype(np.float32).tobytes()
+        embeddings_bytes = embeddings.astype(np.float64).tobytes()
         sc.api_redis_cli.hset(
             f"txt-{key}", mapping={"embedding": embeddings_bytes, "id": key, "sentence": sentence[:sc.TEXT_MAX_LENGTH]}
         )
