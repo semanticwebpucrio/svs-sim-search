@@ -23,11 +23,10 @@ def index(file: bytes = File(...), skip: int = 0):
             img_id = row['id']
             img_caption = row['caption']
             img_url = row['image']
-            sc.api_logger.info(f"id: {img_id} | url: {img_url} | caption: {img_caption}")
-            sc.api_logger.info("starting redis insertion")
-            sc.api_redis_cli.publish(sc.QUEUE_TXT, f"{img_id}|{img_caption}".encode())
-            sc.api_redis_cli.publish(sc.QUEUE_IMG, f"{img_id}|{img_url}".encode())
-            sc.api_logger.info("ending redis insertion")
+            sc.api_logger.info(f"id: {img_id} | url: {img_url} | caption: {img_caption[:30]}...")
+            sc.api_redis_cli.publish(sc.QUEUE_TXT, f"{img_id}{sc.SEPARATOR}{img_caption}".encode())
+            sc.api_redis_cli.publish(sc.QUEUE_IMG, f"{img_id}{sc.SEPARATOR}{img_url}".encode())
+            sc.api_logger.info("inserted into redis")
         return {"msg": f"{df.shape[0]} files inserted"}
     except (TypeError, OSError, pd.errors.EmptyDataError) as exc:
         raise HTTPException(

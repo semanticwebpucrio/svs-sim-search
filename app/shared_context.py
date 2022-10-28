@@ -1,3 +1,4 @@
+import sys
 import redis
 import logging
 import uvicorn
@@ -11,6 +12,7 @@ REDIS_PORT = 6379
 
 QUEUE_TXT = "txt_queue"
 QUEUE_IMG = "img_queue"
+SEPARATOR = "|###|"
 
 API_PORT = 8080
 API_HOST = "0.0.0.0"
@@ -32,10 +34,21 @@ def start_queueing():
     return redis_client
 
 
-def start_logging():
+def start_api_logging():
     uvicorn_logger = logging.getLogger("uvicorn.access")
     logger.handlers = uvicorn_logger.handlers
     console_formatter = uvicorn.logging.ColourizedFormatter("{message}", style="{", use_colors=False)
     logger.handlers[0].setFormatter(console_formatter)
     logger.setLevel(uvicorn_logger.level)
     return logger
+
+
+def start_encoder_logging():
+    encoder_logger = logging.getLogger()
+    encoder_logger.setLevel(logging.INFO)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(levelname)s:\t%(message)s')
+    handler.setFormatter(formatter)
+    encoder_logger.addHandler(handler)
+    return encoder_logger

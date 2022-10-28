@@ -3,6 +3,7 @@ fastapi==0.85.1
 python-multipart==0.0.5
 redis==4.3.4
 pandas==1.5.1
+numpy==1.23.4
 requests==2.28.1
 torch==1.12.1
 torchvision==0.13.1

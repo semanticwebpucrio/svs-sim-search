@@ -15,7 +15,7 @@ def get_application() -> FastAPI:
     @app.on_event("startup")
     def startup_event():
         sc.api_redis_cli = sc.start_queueing()
-        sc.api_logger = sc.start_logging()
+        sc.api_logger = sc.start_api_logging()
 
     @app.get("/healthcheck", include_in_schema=False)
     def healthcheck():
