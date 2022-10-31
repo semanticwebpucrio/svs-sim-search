@@ -2,6 +2,7 @@ import sys
 import redis
 import logging
 import uvicorn
+import numpy as np
 from fastapi.logger import logger
 
 
@@ -12,12 +13,14 @@ REDIS_PORT = 6379
 
 QUEUE_TXT = "txt_queue"
 QUEUE_IMG = "img_queue"
+QUEUES_AVAILABLE = 1
 SEPARATOR = "|###|"
 
 MAX_LOOPS_WITHOUT_DATA = 120  # approximate 1min
 TEXT_MAX_LENGTH = 512
 TEXT_EMBEDDING_DIMENSION = 768
 TEXT_EMBEDDING_FIELD_NAME = "embedding"
+TEXT_EMBEDDING_TYPE = np.float32
 TEXT_DISTANCE_METRIC = "COSINE"
 
 API_PORT = 8080

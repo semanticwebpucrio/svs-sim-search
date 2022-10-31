@@ -23,10 +23,9 @@ case "$1" in
         exec python app/main.py
         ;;
     txt_encoder)
-        exec python app/services/text.py
+        exec python app/services/text.py "$QUEUE_ID"
         ;;
     *)
         exec "$@"
         ;;
 esac
-z

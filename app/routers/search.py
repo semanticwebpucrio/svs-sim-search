@@ -24,7 +24,7 @@ model = SentenceTransformer(
 @router.get("/")
 def index(kws: str, k: int = 5):
     try:
-        query_vector = model.encode(kws).astype(np.float32).tobytes()
+        query_vector = model.encode(kws).astype(sc.TEXT_EMBEDDING_TYPE).tobytes()
         q = Query(f"*=>[KNN {k} @{sc.TEXT_EMBEDDING_FIELD_NAME} $query_vector AS score]")\
             .sort_by("score", asc=False)\
             .return_fields("id", "sentence", "score")\
