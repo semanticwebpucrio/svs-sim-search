@@ -1,6 +1,5 @@
 import redis
 import traceback
-import numpy as np
 from pathlib import Path
 import app.shared_context as sc
 from fastapi import APIRouter, HTTPException

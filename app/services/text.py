@@ -1,5 +1,4 @@
 import sys
-import numpy as np
 from time import sleep
 from pathlib import Path
 import app.shared_context as sc
