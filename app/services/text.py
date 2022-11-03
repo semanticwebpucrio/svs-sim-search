@@ -2,26 +2,8 @@ import sys
 from time import sleep
 from pathlib import Path
 import app.shared_context as sc
-from redis.commands.search.field import VectorField, TextField
+from app.helper import create_flat_index
 from sentence_transformers import SentenceTransformer
-
-
-def create_flat_index(vector_field_name, number_of_vectors):
-    sc.api_redis_cli.ft().create_index([
-        VectorField(
-            vector_field_name,
-            "FLAT",
-            {
-                "TYPE": "FLOAT32",
-                "DIM": sc.TEXT_EMBEDDING_DIMENSION,
-                "DISTANCE_METRIC": sc.TEXT_DISTANCE_METRIC,
-                "INITIAL_CAP": number_of_vectors,
-                "BLOCK_SIZE": number_of_vectors,
-            }
-        ),
-        TextField("id"),
-        TextField("sentence"),
-    ])
 
 
 def run():

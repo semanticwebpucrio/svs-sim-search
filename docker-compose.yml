@@ -19,12 +19,31 @@ x-txt-encoder:
   depends_on:
     - redis
 
+x-img-encoder:
+  &custom_img_encoder
+  restart: "no"
+  command: img_encoder
+  env_file:
+    - .env
+  build:
+    context: .
+    dockerfile: Dockerfile
+  volumes:
+    - .:/opt/
+  networks:
+    - default
+  dns:
+    - 8.8.8.8
+    - 8.8.4.4
+  depends_on:
+    - redis
+
 services:
   redis:
     image: redislabs/redisearch:2.6.0
     ports:
       - "6379:6379"
-    command: redis-server --maxmemory 1gb --maxmemory-policy allkeys-lru --loadmodule /usr/lib/redis/modules/redisearch.so
+    command: redis-server --maxmemory 2gb --maxmemory-policy allkeys-lru --loadmodule /usr/lib/redis/modules/redisearch.so
 
   txt_encoder_0:
     <<: *custom_txt_encoder
@@ -50,6 +69,30 @@ services:
 #    environment:
 #      - QUEUE_ID=2
 
+  img_encoder_0:
+    <<: *custom_img_encoder
+    ports:
+      - "83:80"
+      - "446:443"
+    environment:
+      - QUEUE_ID=0
+
+#  img_encoder_1:
+#    <<: *custom_img_encoder
+#    ports:
+#      - "84:80"
+#      - "447:443"
+#    environment:
+#      - QUEUE_ID=1
+#
+#  img_encoder_2:
+#    <<: *custom_img_encoder
+#    ports:
+#      - "85:80"
+#      - "448:443"
+#    environment:
+#      - QUEUE_ID=2
+
   api:
     restart: "no"
     command: api
@@ -71,5 +114,9 @@ services:
       - redis
       - txt_encoder_0
 #      - txt_encoder_1
+#      - txt_encoder_2
+      - img_encoder_0
+#      - img_encoder_1
+#      - img_encoder_2
     stdin_open: true
     tty: true

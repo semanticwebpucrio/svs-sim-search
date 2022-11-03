@@ -25,6 +25,9 @@ case "$1" in
     txt_encoder)
         exec python app/services/text.py "$QUEUE_ID"
         ;;
+    img_encoder)
+        exec python app/services/image.py "$QUEUE_ID"
+        ;;
     *)
         exec "$@"
         ;;
