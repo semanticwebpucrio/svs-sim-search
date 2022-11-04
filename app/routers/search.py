@@ -29,7 +29,7 @@ def index(kws: str, k: int = 5):
             .return_fields("id", "sentence", "score")\
             .dialect(2)
         params_dict = {"query_vector": query_vector}
-        results = sc.api_redis_cli.ft().search(q, query_params=params_dict)
+        results = sc.api_redis_cli.ft(index_name="idx_txt").search(q, query_params=params_dict)
         ret = {
             "total": results.total,
             "results": [

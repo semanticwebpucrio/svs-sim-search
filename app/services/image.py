@@ -39,7 +39,7 @@ def run():
     queue_name = f"{sc.QUEUE_IMG}_{queue_id}"
     sc.api_logger.info("downloading cnn model")
     # pool_strategy="mean"
-    model = torch.hub.load("pytorch/vision:v0.10.0", "mobilenet_v2", pretrained=True)
+    model = torch.hub.load("pytorch/vision:v0.10.0", "mobilenet_v2", weights=True)
     model.eval()
     sc.api_logger.info(f"subscribing to redis queue: {queue_name}")
     p_img = sc.api_redis_cli.pubsub()
