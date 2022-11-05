@@ -1,9 +1,14 @@
 import sys
 import redis
+import torch
 import logging
 import uvicorn
 import numpy as np
+from PIL import Image
+from pathlib import Path
 from fastapi.logger import logger
+from torchvision import transforms
+from sentence_transformers import SentenceTransformer
 
 
 # TODO: load values from .env file
@@ -22,11 +27,13 @@ TEXT_EMBEDDING_DIMENSION = 768
 TEXT_EMBEDDING_FIELD_NAME = "embedding"
 TEXT_EMBEDDING_TYPE = np.float32
 TEXT_DISTANCE_METRIC = "COSINE"
+TEXT_INDEX_NAME = "idx_txt"
 
 IMG_EMBEDDING_DIMENSION = 1000
 IMG_EMBEDDING_FIELD_NAME = "embedding"
 IMG_EMBEDDING_TYPE = np.float32
 IMG_DISTANCE_METRIC = "COSINE"
+IMG_INDEX_NAME = "idx_img"
 
 API_PORT = 8080
 API_HOST = "0.0.0.0"
@@ -38,6 +45,14 @@ API_DESCRIPTION = """
 api_app = None
 api_logger = None
 api_redis_cli = None
+model_txt = SentenceTransformer(
+    model_name_or_path="sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
+    cache_folder=str(Path(__file__).parent / "dl_models"),
+)
+model_img = torch.hub.load(
+    "pytorch/vision:v0.10.0", "mobilenet_v2", weights=True
+)
+model_img.eval()
 
 
 def start_queueing():
@@ -66,3 +81,24 @@ def start_encoder_logging():
     handler.setFormatter(formatter)
     encoder_logger.addHandler(handler)
     return encoder_logger
+
+
+def encode_image(img_path: Path = None, input_image: Image = None):
+    if not input_image:
+        input_image = Image.open(img_path)
+    preprocess = transforms.Compose([
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    input_tensor = preprocess(input_image)
+    input_batch = input_tensor.unsqueeze(0)  # create a mini-batch as expected by the model
+
+    with torch.no_grad():
+        output = model_img(input_batch)
+    # Tensor of shape 1000, with confidence scores over Imagenet's 1000 classes
+    # print(output[0])
+    # The output has unnormalized scores. To get probabilities, you can run a softmax on it.
+    embeddings = torch.nn.functional.softmax(output[0], dim=0)
+    return embeddings

@@ -1,10 +1,10 @@
+import io
 import redis
 import traceback
-from pathlib import Path
+from PIL import Image
 import app.shared_context as sc
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, HTTPException
 from redis.commands.search.query import Query
-from sentence_transformers import SentenceTransformer
 
 
 router = APIRouter(
@@ -14,29 +14,16 @@ router = APIRouter(
 )
 
 
-model = SentenceTransformer(
-    model_name_or_path="sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
-    cache_folder=str(Path(__file__).parent.parent / "dl_models"),
-)
-
-
-@router.get("/")
-def index(kws: str, k: int = 5):
+@router.post("/")
+def index(kws: str = None, img: bytes = File(default=None), k: int = 5):
     try:
-        query_vector = model.encode(kws).astype(sc.TEXT_EMBEDDING_TYPE).tobytes()
-        q = Query(f"*=>[KNN {k} @{sc.TEXT_EMBEDDING_FIELD_NAME} $query_vector AS score]")\
-            .sort_by("score", asc=False)\
-            .return_fields("id", "sentence", "score")\
-            .dialect(2)
-        params_dict = {"query_vector": query_vector}
-        results = sc.api_redis_cli.ft(index_name="idx_txt").search(q, query_params=params_dict)
-        ret = {
-            "total": results.total,
-            "results": [
-                {"id": doc.id, "sentence": doc.sentence, "score": doc.score} for doc in results.docs
-            ]
+        result_txt = retrieve_txt(kws, k) if kws else {}
+        result_img = retrieve_img(img, k) if img else {}
+        result = {
+            "total": result_txt.get("total", 0) + result_img.get("total", 0),
+            "results": result_txt.get("results", []) + result_img.get("results", [])
         }
-        return ret
+        return result
     except (NameError, redis.exceptions.ResponseError) as exc:
         raise HTTPException(
             status_code=500, detail=f"Search Route: Error querying Redis - {str(exc)}"
@@ -50,3 +37,41 @@ def index(kws: str, k: int = 5):
                 )
             )
         )
+
+
+def retrieve_txt(kws: str, k: int):
+    query_vector = sc.model_txt.encode(kws).astype(sc.TEXT_EMBEDDING_TYPE).tobytes()
+    q = Query(f"*=>[KNN {k} @{sc.TEXT_EMBEDDING_FIELD_NAME} $query_vector AS score]") \
+        .sort_by("score", asc=False) \
+        .return_fields("id", "sentence", "score") \
+        .dialect(2)
+    params_dict = {"query_vector": query_vector}
+    results = sc.api_redis_cli.ft(index_name=sc.TEXT_INDEX_NAME).search(q, query_params=params_dict)
+    ret = {
+        "total": results.total,
+        "results": [
+            {"id": doc.id, "sentence": doc.sentence, "score": doc.score} for doc in results.docs
+        ]
+    }
+    return ret
+
+
+def retrieve_img(raw: bytes, k: int):
+    image = Image.open(io.BytesIO(raw))
+    embeddings = sc.encode_image(input_image=image)
+    query_vector = embeddings.detach().numpy().astype(sc.IMG_EMBEDDING_TYPE).tobytes()
+    q = Query(f"*=>[KNN {k} @{sc.IMG_EMBEDDING_FIELD_NAME} $query_vector AS score]") \
+        .sort_by("score", asc=False) \
+        .return_fields("id", "sentence", "score") \
+        .dialect(2)
+    # FIXME: Error parsing vector similarity query
+    #  query vector blob size (4000) does not match index's expected size (3072).
+    params_dict = {"query_vector": query_vector[:3072]}
+    results = sc.api_redis_cli.ft(index_name=sc.IMG_INDEX_NAME).search(q, query_params=params_dict)
+    ret = {
+        "total": results.total,
+        "results": [
+            {"id": doc.id, "score": doc.score} for doc in results.docs
+        ]
+    }
+    return ret

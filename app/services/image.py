@@ -2,11 +2,9 @@ import sys
 import torch
 import pandas as pd
 import requests as r
-from PIL import Image
 from time import sleep
 from pathlib import Path
 import app.shared_context as sc
-from torchvision import transforms
 from app.helper import create_flat_index
 
 
@@ -56,7 +54,7 @@ def run():
                 if num_empty_loops >= sc.MAX_LOOPS_WITHOUT_DATA:
                     if queue_id == 0:  # only queue_id = 0 will be responsible to create index
                         sc.api_logger.info("creating index on redis")
-                        create_flat_index(sc.TEXT_EMBEDDING_FIELD_NAME, num_embeddings, index_name="idx_img")
+                        create_flat_index(sc.IMG_EMBEDDING_FIELD_NAME, num_embeddings, index_name="idx_img")
                     num_embeddings, num_empty_loops = 0, 0
             sleep(0.5)
             continue
@@ -68,23 +66,7 @@ def run():
             continue
 
         filename = f"image_{key}.jpg"
-        input_image = Image.open(images_path / filename)
-        preprocess = transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
-        input_tensor = preprocess(input_image)
-        input_batch = input_tensor.unsqueeze(0)  # create a mini-batch as expected by the model
-
-        with torch.no_grad():
-            output = model(input_batch)
-        # Tensor of shape 1000, with confidence scores over Imagenet's 1000 classes
-        # print(output[0])
-        # The output has unnormalized scores. To get probabilities, you can run a softmax on it.
-        embeddings = torch.nn.functional.softmax(output[0], dim=0)
-
+        embeddings = sc.encode_image(img_path=images_path / filename)
         sc.api_logger.info(f"key: {key} | embeddings shape: {embeddings.shape}")
         embeddings_bytes = embeddings.detach().numpy().astype(sc.IMG_EMBEDDING_TYPE).tobytes()
         sc.api_redis_cli.hset(
