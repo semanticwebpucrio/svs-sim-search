@@ -5,7 +5,7 @@ import requests as r
 from time import sleep
 from pathlib import Path
 import app.shared_context as sc
-from app.helper import create_flat_index
+from app.helper import create_index
 
 
 input_path = Path(__file__).parent.parent / "input"
@@ -52,9 +52,17 @@ def run():
             if num_embeddings > 0:
                 num_empty_loops += 1
                 if num_empty_loops >= sc.MAX_LOOPS_WITHOUT_DATA:
-                    if queue_id == 0:  # only queue_id = 0 will be responsible to create index
+                    if queue_id == sc.QUEUE_MAIN:
                         sc.api_logger.info("creating index on redis")
-                        create_flat_index(sc.IMG_EMBEDDING_FIELD_NAME, num_embeddings, index_name="idx_img")
+                        create_index(
+                            index_name=f"idx_img",
+                            distance_metric=sc.IMG_DISTANCE_METRIC,
+                            vector_field_name="embedding",
+                            embedding_dimension=sc.IMG_EMBEDDING_DIMENSION,
+                            number_of_vectors=num_embeddings,
+                            index_type="HNSW",
+                            prefix="img-"
+                        )
                     num_embeddings, num_empty_loops = 0, 0
             sleep(0.5)
             continue
@@ -69,8 +77,14 @@ def run():
         embeddings = sc.encode_image(img_path=images_path / filename)
         sc.api_logger.info(f"key: {key} | embeddings shape: {embeddings.shape}")
         embeddings_bytes = embeddings.detach().numpy().astype(sc.IMG_EMBEDDING_TYPE).tobytes()
+        bucket = int(key) % sc.BUCKETS
+        # TODO: change hyphen and underscore with two points
         sc.api_redis_cli.hset(
-            f"img-{key}", mapping={"embedding": embeddings_bytes, "id": key}
+            f"img-{key}",
+            mapping={
+                f"embedding_{bucket}": embeddings_bytes,
+                "id": key
+            }
         )
         num_embeddings += 1
 

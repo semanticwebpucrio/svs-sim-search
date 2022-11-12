@@ -41,9 +41,10 @@ def index(kws: str = None, img: bytes = File(default=None), k: int = 5):
 
 def retrieve_txt(kws: str, k: int):
     query_vector = sc.model_txt.encode(kws).astype(sc.TEXT_EMBEDDING_TYPE).tobytes()
-    q = Query(f"*=>[KNN {k} @{sc.TEXT_EMBEDDING_FIELD_NAME} $query_vector AS score]") \
-        .sort_by("score", asc=False) \
-        .return_fields("id", "sentence", "score") \
+    # TODO: pay attention on asc and desc which may vary depending on distance metric
+    q = Query(f"*=>[KNN {k} @embedding $query_vector AS score]")\
+        .sort_by("score", asc=False)\
+        .return_fields("id", "sentence", "score")\
         .dialect(2)
     params_dict = {"query_vector": query_vector}
     results = sc.api_redis_cli.ft(index_name=sc.TEXT_INDEX_NAME).search(q, query_params=params_dict)
@@ -60,6 +61,7 @@ def retrieve_img(raw: bytes, k: int):
     image = Image.open(io.BytesIO(raw))
     embeddings = sc.encode_image(input_image=image)
     query_vector = embeddings.detach().numpy().astype(sc.IMG_EMBEDDING_TYPE).tobytes()
+    # TODO: pay attention on asc and desc which may vary depending on distance metric
     q = Query(f"*=>[KNN {k} @{sc.IMG_EMBEDDING_FIELD_NAME} $query_vector AS score]") \
         .sort_by("score", asc=False) \
         .return_fields("id", "sentence", "score") \
