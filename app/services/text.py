@@ -1,19 +1,12 @@
 import sys
 from time import sleep
-from pathlib import Path
 import app.shared_context as sc
 from app.helper import create_index
-from sentence_transformers import SentenceTransformer
 
 
 def run():
     queue_id = int(sys.argv[1]) if len(sys.argv) > 1 else 0
     queue_name = f"{sc.QUEUE_TXT}_{queue_id}"
-    sc.api_logger.info("downloading tranformer model")
-    model = SentenceTransformer(
-        model_name_or_path="sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
-        cache_folder=str(Path(__file__).parent.parent / "dl_models"),
-    )
     sc.api_logger.info(f"subscribing to redis queue: {queue_name}")
     p_txt = sc.api_redis_cli.pubsub()
     p_txt.subscribe(queue_name)
