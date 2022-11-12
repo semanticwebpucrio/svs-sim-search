@@ -40,15 +40,14 @@ def run():
             sc.api_logger.info(f"unicode-decode error detected - skipping")
             sleep(0.5)
             continue
-        embeddings = model.encode(sentence[:sc.TEXT_MAX_LENGTH])
+        embeddings = sc.model_txt.encode(sentence[:sc.TEXT_MAX_LENGTH])
         sc.api_logger.info(f"key: {key} | embeddings shape: {embeddings.shape}")
         embeddings_bytes = embeddings.astype(sc.TEXT_EMBEDDING_TYPE).tobytes()
-        bucket = int(key) % sc.BUCKETS
-        # TODO: change hyphen and underscore with two points
+        # bucket = int(key) % sc.BUCKETS
         sc.api_redis_cli.hset(
-            f"txt-{key}",
+            f"txt:{key}",
             mapping={
-                f"embedding_{bucket}": embeddings_bytes,
+                "embedding": embeddings_bytes,
                 "id": key,
                 "sentence": sentence[:sc.TEXT_MAX_LENGTH]
             }

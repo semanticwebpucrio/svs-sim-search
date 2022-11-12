@@ -56,7 +56,7 @@ def run():
                             embedding_dimension=sc.IMG_EMBEDDING_DIMENSION,
                             number_of_vectors=num_embeddings,
                             index_type="HNSW",
-                            prefix="img-"
+                            prefix="img:"
                         )
                     num_embeddings, num_empty_loops = 0, 0
             sleep(0.5)
@@ -72,12 +72,11 @@ def run():
         embeddings = sc.encode_image(img_path=images_path / filename)
         sc.api_logger.info(f"key: {key} | embeddings shape: {embeddings.shape}")
         embeddings_bytes = embeddings.detach().numpy().astype(sc.IMG_EMBEDDING_TYPE).tobytes()
-        bucket = int(key) % sc.BUCKETS
-        # TODO: change hyphen and underscore with two points
+        # bucket = int(key) % sc.BUCKETS
         sc.api_redis_cli.hset(
-            f"img-{key}",
+            f"img:{key}",
             mapping={
-                f"embedding_{bucket}": embeddings_bytes,
+                "embedding": embeddings_bytes,
                 "id": key
             }
         )
