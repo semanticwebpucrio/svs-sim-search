@@ -1,8 +1,9 @@
 import app.shared_context as sc
-from app.helper import create_index
+from app.helper import create_index, timeit
 from redis.commands.search.query import Query
 
 
+@timeit
 def delete(pattern="txt:*"):
     keys = sc.api_redis_cli.keys(pattern)
     for key in keys:
@@ -11,6 +12,7 @@ def delete(pattern="txt:*"):
     sc.api_logger.info(f"{len(keys)} keys dropped")
 
 
+@timeit
 def run(pattern="txt:*"):
     keys = sc.api_redis_cli.keys(pattern)
     bucket_size = [0, 0, 0, 0, 0]
@@ -37,10 +39,11 @@ def run(pattern="txt:*"):
             embedding_dimension=sc.TEXT_EMBEDDING_DIMENSION,
             number_of_vectors=bucket_size[bucket],
             index_type="HNSW",
-            prefix=f"txt_{bucket}"
+            prefix=f"txt:{bucket}:"
         )
 
 
+@timeit
 def query(kws="iPhone", k=20):
     query_vector = sc.model_txt.encode(kws).astype(sc.TEXT_EMBEDDING_TYPE).tobytes()
     # FLAT - 1k docs
