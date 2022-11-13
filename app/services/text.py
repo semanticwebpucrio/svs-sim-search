@@ -29,7 +29,7 @@ def run():
                             embedding_dimension=sc.TEXT_EMBEDDING_DIMENSION,
                             number_of_vectors=num_embeddings,
                             index_type="HNSW",
-                            prefix="txt-"
+                            prefix="txt:"
                         )
                     num_embeddings, num_empty_loops = 0, 0
             sleep(0.5)
