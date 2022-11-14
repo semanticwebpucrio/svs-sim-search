@@ -4,6 +4,27 @@ from redis.commands.search.query import Query
 
 
 @timeit
+def rename(pattern="txt:*", prefix="txt::"):
+    keys = sc.api_redis_cli.keys(pattern)
+    for key in keys:
+        if str(key).count(":") == 2:
+            sc.api_logger.info(f"skipping key {str(key)}")
+            continue
+        # FIXME: this selection made on list must be dynamic
+        new_key = int(key[4:].decode())
+        obj = sc.api_redis_cli.hgetall(key)
+        sc.api_redis_cli.hset(
+            f"{prefix}{new_key}",
+            mapping={
+                "embedding": obj[b"embedding"],
+                "sentence": obj[b"sentence"],
+                "id": key
+            }
+        )
+        sc.api_redis_cli.delete(key)
+
+
+@timeit
 def delete(pattern="txt:*"):
     keys = sc.api_redis_cli.keys(pattern)
     for key in keys:
