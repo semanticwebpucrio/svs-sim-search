@@ -45,7 +45,7 @@ def run(pattern="txt:*"):
 
 @timeit
 def query(kws="iPhone", k=20):
-    query_vector = sc.model_txt.encode(kws).astype(sc.TEXT_EMBEDDING_TYPE).tobytes()
+    query_vector = sc.load_txt_model().encode(kws).astype(sc.TEXT_EMBEDDING_TYPE).tobytes()
     # FLAT - 1k docs
     q = Query(f"*=>[KNN {k} @embedding $query_vector AS score]")\
         .sort_by("score", asc=True)\

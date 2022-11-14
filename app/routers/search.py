@@ -40,7 +40,7 @@ def index(kws: str = None, img: bytes = File(default=None), k: int = 5):
 
 
 def retrieve_txt(kws: str, k: int):
-    query_vector = sc.model_txt.encode(kws).astype(sc.TEXT_EMBEDDING_TYPE).tobytes()
+    query_vector = sc.load_txt_model().encode(kws).astype(sc.TEXT_EMBEDDING_TYPE).tobytes()
     # TODO: pay attention on asc and desc which may vary depending on distance metric
     q = Query(f"*=>[KNN {k} @embedding $query_vector AS score]")\
         .sort_by("score", asc=False)\

@@ -40,7 +40,7 @@ def run():
             sc.api_logger.info(f"unicode-decode error detected - skipping")
             sleep(0.5)
             continue
-        embeddings = sc.model_txt.encode(sentence[:sc.TEXT_MAX_LENGTH])
+        embeddings = sc.load_txt_model().encode(sentence[:sc.TEXT_MAX_LENGTH])
         sc.api_logger.info(f"key: {key} | embeddings shape: {embeddings.shape}")
         embeddings_bytes = embeddings.astype(sc.TEXT_EMBEDDING_TYPE).tobytes()
         # bucket = int(key) % sc.BUCKETS

@@ -47,14 +47,8 @@ API_DESCRIPTION = """
 api_app = None
 api_logger = None
 api_redis_cli = None
-model_txt = SentenceTransformer(
-    model_name_or_path="sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
-    cache_folder=str(Path(__file__).parent / "dl_models"),
-)
-model_img = torch.hub.load(
-    "pytorch/vision:v0.10.0", "mobilenet_v2", weights=True
-)
-model_img.eval()
+model_txt = None
+model_img = None
 
 
 def start_queueing():
@@ -86,6 +80,13 @@ def start_encoder_logging():
 
 
 def encode_image(img_path: Path = None, input_image: Image = None):
+    global model_img
+    # lazy loading
+    if not model_img:
+        model_img = torch.hub.load(
+            "pytorch/vision:v0.10.0", "mobilenet_v2", weights=True
+        )
+        model_img.eval()
     if not input_image:
         input_image = Image.open(img_path)
     preprocess = transforms.Compose([
@@ -104,3 +105,14 @@ def encode_image(img_path: Path = None, input_image: Image = None):
     # The output has unnormalized scores. To get probabilities, you can run a softmax on it.
     embeddings = torch.nn.functional.softmax(output[0], dim=0)
     return embeddings
+
+
+def load_txt_model():
+    global model_txt
+    # lazy loading
+    if not model_txt:
+        model_txt = SentenceTransformer(
+            model_name_or_path="sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
+            cache_folder=str(Path(__file__).parent / "dl_models"),
+        )
+    return model_txt
