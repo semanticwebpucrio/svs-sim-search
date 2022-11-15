@@ -1,6 +1,24 @@
+import pandas as pd
+from pathlib import Path
 import app.shared_context as sc
 from app.helper import create_index, timeit
 from redis.commands.search.query import Query
+
+
+def to_redis(key_prefix="txt"):
+    output_path = Path(__file__).parent.parent / "output"
+    for file in output_path.glob("encoded_values_*.csv"):
+        df = pd.read_csv(file, names=["id", "embedding"], header=0, engine="python", sep='","b')
+        for idx, row in df.iterrows():
+            key = row["id"][1:]
+            val = row["embedding"][1:-2]
+            sc.api_redis_cli.hset(
+                f"{key_prefix}::{key}",
+                mapping={
+                    "embedding": val.encode(),
+                    "id": key
+                }
+            )
 
 
 @timeit
@@ -90,4 +108,4 @@ def query(kws="iPhone", k=20):
 if __name__ == '__main__':
     sc.api_redis_cli = sc.start_queueing()
     sc.api_logger = sc.start_encoder_logging()
-    run()
+    to_redis()

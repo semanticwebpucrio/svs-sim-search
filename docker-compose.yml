@@ -19,24 +19,24 @@ x-txt-encoder:
   depends_on:
     - redis
 
-x-img-encoder:
-  &custom_img_encoder
-  restart: "no"
-  command: img_encoder
-  env_file:
-    - .env
-  build:
-    context: .
-    dockerfile: Dockerfile
-  volumes:
-    - .:/opt/
-  networks:
-    - default
-  dns:
-    - 8.8.8.8
-    - 8.8.4.4
-  depends_on:
-    - redis
+#x-img-encoder:
+#  &custom_img_encoder
+#  restart: "no"
+#  command: img_encoder
+#  env_file:
+#    - .env
+#  build:
+#    context: .
+#    dockerfile: Dockerfile
+#  volumes:
+#    - .:/opt/
+#  networks:
+#    - default
+#  dns:
+#    - 8.8.8.8
+#    - 8.8.4.4
+#  depends_on:
+#    - redis
 
 services:
   redis:
@@ -68,15 +68,15 @@ services:
 #      - "445:443"
 #    environment:
 #      - QUEUE_ID=2
-
-  img_encoder_0:
-    <<: *custom_img_encoder
-    ports:
-      - "83:80"
-      - "446:443"
-    environment:
-      - QUEUE_ID=0
-
+#
+#  img_encoder_0:
+#    <<: *custom_img_encoder
+#    ports:
+#      - "83:80"
+#      - "446:443"
+#    environment:
+#      - QUEUE_ID=0
+#
 #  img_encoder_1:
 #    <<: *custom_img_encoder
 #    ports:
@@ -92,31 +92,31 @@ services:
 #      - "448:443"
 #    environment:
 #      - QUEUE_ID=2
-
-  api:
-    restart: "no"
-    command: api
-    env_file:
-      - .env
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - .:/opt/
-    ports:
-      - "8080:8080"
-    networks:
-      - default
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
-    depends_on:
-      - redis
-      - txt_encoder_0
+#
+#  api:
+#    restart: "no"
+#    command: api
+#    env_file:
+#      - .env
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#    volumes:
+#      - .:/opt/
+#    ports:
+#      - "8080:8080"
+#    networks:
+#      - default
+#    dns:
+#      - 8.8.8.8
+#      - 8.8.4.4
+#    depends_on:
+#      - redis
+#      - txt_encoder_0
 #      - txt_encoder_1
 #      - txt_encoder_2
-      - img_encoder_0
+#      - img_encoder_0
 #      - img_encoder_1
 #      - img_encoder_2
-    stdin_open: true
-    tty: true
+#    stdin_open: true
+#    tty: true

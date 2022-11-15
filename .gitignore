@@ -164,6 +164,9 @@ app/images/*
 app/input/*
 !app/input/.keep
 
+app/output/*
+!app/output/.keep
+
 app/dl_models/*
 !app/dl_models/.keep
 
