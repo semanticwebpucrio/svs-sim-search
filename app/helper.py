@@ -37,7 +37,7 @@ def create_index(vector_field_name,
                 "INITIAL_CAP": number_of_vectors,
             }
         ),
-        NumericField("id"),
+        TextField("id"),
     ]
     if "txt" in index_name:
         fields.append(TextField("sentence"))

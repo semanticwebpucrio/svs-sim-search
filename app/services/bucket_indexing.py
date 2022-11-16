@@ -13,7 +13,7 @@ def conv(col):
 def to_redis(key_prefix="txt"):
     output_path = Path(__file__).parent.parent / "output"
     # with open(output_path / "sample.csv", "r") as file:
-    for file in output_path.glob("encoded_values_*.csv"):
+    for file in output_path.glob("encoded_values_2.csv"):
         df = pd.read_csv(
             file,
             names=["id", "embedding"],
@@ -63,23 +63,34 @@ def delete(pattern="txt:*"):
 
 
 @timeit
-def run(pattern="txt:*"):
-    keys = sc.api_redis_cli.keys(pattern)
-    bucket_size = [0, 0, 0, 0, 0]
-    for key in keys:
-        new_key = key[4:].decode()
-        bucket = int(new_key) % sc.BUCKETS
-        bucket_size[bucket] += 1
-        obj = sc.api_redis_cli.hgetall(key)
-        sc.api_redis_cli.hset(
-            f"txt:{bucket}:{new_key}",
-            mapping={
-                "embedding": obj[b"embedding"],
-                "sentence": obj[b"sentence"],
-                "id": key
-            }
-        )
-    # bucket_size = [200, 203, 193, 194, 210]
+def run(pattern="txt:*", only_index=False):
+    if not only_index:
+        keys = sc.api_redis_cli.keys(pattern)
+        bucket_size = [0, 0, 0, 0, 0]
+        for key in keys:
+            new_key = key[5:].decode()
+            bucket = int(new_key) % sc.BUCKETS
+            bucket_size[bucket] += 1
+            obj = sc.api_redis_cli.hgetall(key)
+            sc.api_redis_cli.hset(
+                f"txt:{bucket}:{new_key}",
+                mapping={
+                    "embedding": obj[b"embedding"],
+      #              "sentence": obj[b"sentence"],
+                    "id": new_key
+                }
+            )
+
+    create_index(
+          index_name="idx_txt",
+          distance_metric=sc.TEXT_DISTANCE_METRIC,
+          vector_field_name="embedding",
+          embedding_dimension=sc.TEXT_EMBEDDING_DIMENSION,
+          number_of_vectors=50000,
+          index_type="HNSW",
+          prefix="txt::"
+    )
+    bucket_size = [9907, 10103, 9869, 10053, 10068]
     sc.api_logger.info(f"bucket size: {bucket_size}")
     for bucket in range(sc.BUCKETS):
         create_index(
@@ -89,7 +100,7 @@ def run(pattern="txt:*"):
             embedding_dimension=sc.TEXT_EMBEDDING_DIMENSION,
             number_of_vectors=bucket_size[bucket],
             index_type="HNSW",
-            prefix=f"txt:{bucket}:"
+            prefix=f"txt:{bucket}"
         )
 
 
@@ -117,6 +128,8 @@ def query(kws="iPhone", k=20):
 
 
 if __name__ == '__main__':
-    sc.api_redis_cli = sc.start_queueing()
+    sc.api_redis_cli = sc.start_queueing(manually=True)
     sc.api_logger = sc.start_encoder_logging()
     to_redis()
+    run(pattern='txt::*', only_index=True)
+

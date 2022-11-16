@@ -51,9 +51,9 @@ model_txt = None
 model_img = None
 
 
-def start_queueing():
+def start_queueing(manually=False):
     redis_client = redis.Redis(
-        host=REDIS_HOST,
+        host=REDIS_HOST if not manually else 'localhost',
         port=REDIS_PORT,
     )
     return redis_client
