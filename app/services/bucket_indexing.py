@@ -13,23 +13,26 @@ def conv(col):
 def to_redis(key_prefix="txt"):
     output_path = Path(__file__).parent.parent / "output"
     # with open(output_path / "sample.csv", "r") as file:
-    for file in output_path.glob("encoded_values_2.csv"):
-        df = pd.read_csv(
-            file,
-            names=["id", "embedding"],
-            converters={"id": conv, "embedding": conv},
-            header=0,
-            engine="python",
-            sep="#####"
-        )
-        for idx, row in df.iterrows():
-            sc.api_redis_cli.hset(
-                f"{key_prefix}::{row['id']}",
-                mapping={
-                    "embedding": row['embedding'],
-                    "id": row['id']
-                }
+    # for file in output_path.glob("encoded_values_2.csv"):
+    for i in [1, 2, 3, 4, 5]:
+        print(f"Carregando Arquivo {i}")
+        with open(output_path / f"encoded_values_{i}.csv", "r") as file:
+            df = pd.read_csv(
+                file,
+                names=["id", "embedding"],
+                converters={"id": conv, "embedding": conv},
+                header=0,
+                engine="python",
+                sep="#####"
             )
+            for idx, row in df.iterrows():
+                sc.api_redis_cli.hset(
+                    f"{key_prefix}::{row['id']}",
+                    mapping={
+                        "embedding": row['embedding'],
+                        "id": row['id']
+                    }
+                )
 
 
 @timeit
@@ -65,6 +68,7 @@ def delete(pattern="txt:*"):
 @timeit
 def run(pattern="txt:*", only_index=False):
     if not only_index:
+        print("Duplicando Dados para a Criacao dos Indices")
         keys = sc.api_redis_cli.keys(pattern)
         bucket_size = [0, 0, 0, 0, 0]
         for key in keys:
@@ -80,7 +84,7 @@ def run(pattern="txt:*", only_index=False):
                     "id": new_key
                 }
             )
-
+    print("Criando Indice Geral")
     create_index(
           index_name="idx_txt",
           distance_metric=sc.TEXT_DISTANCE_METRIC,
@@ -90,9 +94,10 @@ def run(pattern="txt:*", only_index=False):
           index_type="HNSW",
           prefix="txt::"
     )
-    bucket_size = [9907, 10103, 9869, 10053, 10068]
+    # bucket_size = [9907, 10103, 9869, 10053, 10068]
     sc.api_logger.info(f"bucket size: {bucket_size}")
     for bucket in range(sc.BUCKETS):
+        print(f"Criando Indice {bucket}")
         create_index(
             index_name=f"idx_txt_{bucket}",
             distance_metric=sc.TEXT_DISTANCE_METRIC,
@@ -130,6 +135,9 @@ def query(kws="iPhone", k=20):
 if __name__ == '__main__':
     sc.api_redis_cli = sc.start_queueing(manually=True)
     sc.api_logger = sc.start_encoder_logging()
+    print("Iniciando Carregamento dos Arquivos")
     to_redis()
-    run(pattern='txt::*', only_index=True)
-
+    print("Finalizando Carregamento dos Arquivos")
+    print("Iniciando Criacao dos Indices")
+    run(pattern='txt::*', only_index=False)
+    print("Finalizando Criacao dos Indices")

@@ -1,23 +1,23 @@
 version: "3.9"
 
-x-txt-encoder:
-  &custom_txt_encoder
-  restart: "no"
-  command: txt_encoder
-  env_file:
-    - .env
-  build:
-    context: .
-    dockerfile: Dockerfile
-  volumes:
-    - .:/opt/
-  networks:
-    - default
-  dns:
-    - 8.8.8.8
-    - 8.8.4.4
-  depends_on:
-    - redis
+#x-txt-encoder:
+#  &custom_txt_encoder
+#  restart: "no"
+#  command: txt_encoder
+#  env_file:
+#    - .env
+#  build:
+#    context: .
+#    dockerfile: Dockerfile
+#  volumes:
+#    - .:/opt/
+#  networks:
+#    - default
+#  dns:
+#    - 8.8.8.8
+#    - 8.8.4.4
+#  depends_on:
+#    - redis
 
 #x-img-encoder:
 #  &custom_img_encoder
@@ -43,15 +43,15 @@ services:
     image: redislabs/redisearch:2.6.0
     ports:
       - "6379:6379"
-    command: redis-server --maxmemory 2gb --maxmemory-policy allkeys-lru --loadmodule /usr/lib/redis/modules/redisearch.so
+    command: redis-server --maxmemory 8gb --maxmemory-policy allkeys-lru --loadmodule /usr/lib/redis/modules/redisearch.so
 
-  txt_encoder_0:
-    <<: *custom_txt_encoder
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      - QUEUE_ID=0
+#  txt_encoder_0:
+#    <<: *custom_txt_encoder
+#    ports:
+#      - "80:80"
+#      - "443:443"
+#    environment:
+#      - QUEUE_ID=0
 
 #  txt_encoder_1:
 #    <<: *custom_txt_encoder
