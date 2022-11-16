@@ -1,22 +1,33 @@
 import pandas as pd
 from pathlib import Path
+from ast import literal_eval
 import app.shared_context as sc
 from app.helper import create_index, timeit
 from redis.commands.search.query import Query
 
 
+def conv(col):
+    return literal_eval(col[1:-1])
+
+
 def to_redis(key_prefix="txt"):
     output_path = Path(__file__).parent.parent / "output"
+    # with open(output_path / "sample.csv", "r") as file:
     for file in output_path.glob("encoded_values_*.csv"):
-        df = pd.read_csv(file, names=["id", "embedding"], header=0, engine="python", sep='","b')
+        df = pd.read_csv(
+            file,
+            names=["id", "embedding"],
+            converters={"id": conv, "embedding": conv},
+            header=0,
+            engine="python",
+            sep="###"
+        )
         for idx, row in df.iterrows():
-            key = row["id"][1:]
-            val = row["embedding"][1:-2]
             sc.api_redis_cli.hset(
-                f"{key_prefix}::{key}",
+                f"{key_prefix}::{row['id']}",
                 mapping={
-                    "embedding": val.encode(),
-                    "id": key
+                    "embedding": row['embedding'],
+                    "id": row['id']
                 }
             )
 

@@ -1,7 +1,7 @@
 import time
 from functools import wraps
 import app.shared_context as sc
-from redis.commands.search.field import VectorField, TextField
+from redis.commands.search.field import VectorField, TextField, NumericField
 from redis.commands.search.indexDefinition import IndexDefinition, IndexType
 
 
@@ -37,7 +37,7 @@ def create_index(vector_field_name,
                 "INITIAL_CAP": number_of_vectors,
             }
         ),
-        TextField("id"),
+        NumericField("id"),
     ]
     if "txt" in index_name:
         fields.append(TextField("sentence"))
