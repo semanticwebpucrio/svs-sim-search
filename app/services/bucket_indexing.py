@@ -20,7 +20,7 @@ def to_redis(key_prefix="txt"):
             converters={"id": conv, "embedding": conv},
             header=0,
             engine="python",
-            sep="###"
+            sep="#####"
         )
         for idx, row in df.iterrows():
             sc.api_redis_cli.hset(
