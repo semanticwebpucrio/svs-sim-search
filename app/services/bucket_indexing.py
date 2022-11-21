@@ -14,7 +14,7 @@ def to_redis(key_prefix="txt"):
     output_path = Path(__file__).parent.parent / "output"
     # with open(output_path / "sample.csv", "r") as file:
     # for file in output_path.glob("encoded_values_2.csv"):
-    for i in [1, 2, 3, 4, 5]:
+    for i in range(1, 21):
         print(f"Carregando Arquivo {i}")
         with open(output_path / f"encoded_values_{i}.csv", "r") as file:
             df = pd.read_csv(

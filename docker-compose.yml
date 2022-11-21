@@ -43,7 +43,7 @@ services:
     image: redislabs/redisearch:2.6.0
     ports:
       - "6379:6379"
-    command: redis-server --maxmemory 8gb --maxmemory-policy allkeys-lru --loadmodule /usr/lib/redis/modules/redisearch.so
+    command: redis-server --maxmemory 16gb --maxmemory-policy allkeys-lru --loadmodule /usr/lib/redis/modules/redisearch.so
 
 #  txt_encoder_0:
 #    <<: *custom_txt_encoder
