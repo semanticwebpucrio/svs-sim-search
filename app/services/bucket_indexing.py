@@ -135,7 +135,7 @@ def query(k=20):
             results = query_index(f"idx_txt_{bucket}", row["caption"], k // sc.BUCKETS)
             analysis[row["id"]] = {f"hnsw_bucket_{bucket}": results}
             bucket_results += list(results.docs)
-        bucket_results.sort(key=lambda e: e.score)
+        bucket_results.sort(key=lambda e: float(e.score))
         analysis[row["id"]] = {f"hnsw_buckets": bucket_results}
     return analysis
 
