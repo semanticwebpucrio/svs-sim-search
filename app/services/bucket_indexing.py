@@ -133,7 +133,7 @@ def query(k=20):
         bucket_results = [[], [], [], [], []]
         for bucket in range(sc.BUCKETS):
             results = query_index(f"idx_txt_{bucket}", row["caption"], k // sc.BUCKETS)
-            bucket_results[bucket] = list(results.docs)
+            bucket_results[bucket] = dict(results.docs)
             analysis[row["id"]] = {f"hnsw_bucket_{bucket}": results}
         bucket_results.sort(key=lambda e: e.score)
         analysis[row["id"]] = {f"hnsw_buckets": bucket_results}
