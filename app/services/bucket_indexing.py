@@ -137,8 +137,7 @@ def query(k=20):
             bucket_results += list(results.docs)
         bucket_results.sort(key=lambda e: e.score)
         analysis[row["id"]] = {f"hnsw_buckets": bucket_results}
-        print(analysis)
-        return analysis
+    return analysis
 
 
 if __name__ == '__main__':
