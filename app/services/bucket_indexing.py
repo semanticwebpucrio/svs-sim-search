@@ -154,14 +154,16 @@ def calculate_metrics(results: dict):
         for i, k in enumerate(K):
             a = len(rflat[i] & rhnsw[i])
             c = len(rhnsw[i] - rflat[i])
-            b = len(rflat[i] - rhnsw[i])
-            print(f"HNSW precision@{k} - {a / (a+c)}")
-            print(f"HNSW recall@{k} - {a / (a+b)}")
+            # b = len(rflat[i] - rhnsw[i])
+            b = len(flat)
+            print(f"HNSW precision@{k} - {a/(a+c)}")
+            print(f"HNSW recall@{k} - {a/b}")
             a = len(rflat[i] & rhnswb[i])
             c = len(rhnswb[i] - rflat[i])
-            b = len(rflat[i] - rhnswb[i])
-            print(f"HNSW buckets precision@{k} - {a / (a+c)}")
-            print(f"HNSW buckets recall@{k} - {a / (a+b)}")
+            # b = len(rflat[i] - rhnswb[i])
+            b = len(flat)
+            print(f"HNSW buckets precision@{k} - {a/(a+c)}")
+            print(f"HNSW buckets recall@{k} - {a/b}")
 
 
 if __name__ == '__main__':
