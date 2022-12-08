@@ -140,6 +140,30 @@ def query(k=20):
     return analysis
 
 
+def calculate_metrics(results: dict):
+    K = (1, 5, 10)
+    queries = list(results.keys())
+    for idx, q in enumerate(queries):
+        print(f"Q{idx + 1} - {q}")
+        flat = results[q]["flat"]["docs"]
+        hnsw = results[q]["hnsw"]["docs"]
+        hnswb = results[q]["hnsw_buckets"]
+        rflat = [set([e["id"][5:] for e in flat[:i]]) for i in K]
+        rhnsw = [set([e["id"][5:] for e in hnsw[:i]]) for i in K]
+        rhnswb = [set([e["id"][6:] for e in hnswb[:i]]) for i in K]
+        for i, k in enumerate(K):
+            a = len(rflat[i] & rhnsw[i])
+            c = len(rhnsw[i] - rflat[i])
+            b = len(rflat[i] - rhnsw[i])
+            print(f"HNSW precision@{k} - {a / (a+c)}")
+            print(f"HNSW recall@{k} - {a / (a+b)}")
+            a = len(rflat[i] & rhnswb[i])
+            c = len(rhnswb[i] - rflat[i])
+            b = len(rflat[i] - rhnswb[i])
+            print(f"HNSW buckets precision@{k} - {a / (a+c)}")
+            print(f"HNSW buckets recall@{k} - {a / (a+b)}")
+
+
 if __name__ == '__main__':
     sc.api_redis_cli = sc.start_queueing(manually=True)
     sc.api_logger = sc.start_encoder_logging()
