@@ -19,8 +19,10 @@ REDIS_PORT = 6379
 QUEUE_TXT = "txt_queue"
 QUEUE_IMG = "img_queue"
 QUEUE_MAIN = 0  # queue_id responsible to create index
-QUEUES_AVAILABLE = 1
+QUEUES_AVAILABLE = 2
 SEPARATOR = "|###|"
+START_TOKEN = "[STA]"
+END_TOKEN = "[END]"
 BUCKETS = 5
 
 MAX_LOOPS_WITHOUT_DATA = 120  # approximate 1min
@@ -81,10 +83,11 @@ def start_encoder_logging():
 
 def encode_image(img_path: Path = None, input_image: Image = None):
     global model_img
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # lazy loading
     if not model_img:
         model_img = torch.hub.load(
-            "pytorch/vision:v0.10.0", "mobilenet_v2", weights=True
+            "pytorch/vision:v0.10.0", "mobilenet_v2", weights=True, map_location=str(device)
         )
         model_img.eval()
     if not input_image:
@@ -109,10 +112,12 @@ def encode_image(img_path: Path = None, input_image: Image = None):
 
 def load_txt_model():
     global model_txt
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # lazy loading
     if not model_txt:
         model_txt = SentenceTransformer(
             model_name_or_path="sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
             cache_folder=str(Path(__file__).parent / "dl_models"),
+            device=str(device),
         )
     return model_txt

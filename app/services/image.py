@@ -39,35 +39,40 @@ def run():
     p_img.subscribe(queue_name)
 
     sc.api_logger.info("starting loop")
-    num_embeddings, num_empty_loops = 0, 0
+    num_embeddings = 0
     while True:
         msg = p_img.get_message()
         if not msg:
-            sc.api_logger.info(f"empty {queue_name} - skipping #{num_empty_loops}")
-            if num_embeddings > 0:
-                num_empty_loops += 1
-                if num_empty_loops >= sc.MAX_LOOPS_WITHOUT_DATA:
-                    if queue_id == sc.QUEUE_MAIN:
-                        sc.api_logger.info("creating index on redis")
-                        create_index(
-                            index_name=f"idx_img",
-                            distance_metric=sc.IMG_DISTANCE_METRIC,
-                            vector_field_name="embedding",
-                            embedding_dimension=sc.IMG_EMBEDDING_DIMENSION,
-                            number_of_vectors=num_embeddings,
-                            index_type="HNSW",
-                            prefix="img::"
-                        )
-                    num_embeddings, num_empty_loops = 0, 0
+            sc.api_logger.info(f"empty {queue_name} - skipping...")
             sleep(0.5)
             continue
         try:
-            key, _img_url = msg.get("data").decode().split(sc.SEPARATOR)
+            decoded_data = msg.get("data").decode()
         except (UnicodeDecodeError, AttributeError, ValueError):
             sc.api_logger.info(f"unicode-decode error detected - skipping")
             sleep(0.5)
             continue
-
+        if decoded_data == sc.START_TOKEN:
+            sc.api_logger.info("start token detected")
+            sleep(0.5)
+            continue
+        if decoded_data == sc.END_TOKEN:
+            sc.api_logger.info("end token detected")
+            sc.api_logger.info("waiting other processes finish")
+            sleep(30)
+            if queue_id == sc.QUEUE_MAIN:
+                sc.api_logger.info("creating index on redis")
+                create_index(
+                    index_name=f"idx_img",
+                    distance_metric=sc.IMG_DISTANCE_METRIC,
+                    vector_field_name="embedding",
+                    embedding_dimension=sc.IMG_EMBEDDING_DIMENSION,
+                    number_of_vectors=num_embeddings,
+                    index_type="HNSW",
+                    prefix="img::"
+                )
+            break
+        key, sentence = decoded_data.split(sc.SEPARATOR)
         filename = f"image_{key}.jpg"
         embeddings = sc.encode_image(img_path=images_path / filename)
         sc.api_logger.info(f"key: {key} | embeddings shape: {embeddings.shape}")
