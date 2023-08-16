@@ -44,3 +44,15 @@ def create_index(vector_field_name,
     sc.api_redis_cli.ft(index_name=index_name).create_index(
         fields, definition=IndexDefinition(prefix=[prefix], index_type=IndexType.HASH)
     )
+
+
+def slice_dataframe(dff, qtd):
+    num_lines = dff.shape[0]
+    lines_per_df = num_lines // qtd
+    dfs = []
+    ctrl = 0
+    for _ in range(qtd - 1):
+        dfs.append(dff.iloc[ctrl:ctrl+lines_per_df])
+        ctrl += lines_per_df
+    dfs.append(dff.iloc[ctrl:])
+    return dfs

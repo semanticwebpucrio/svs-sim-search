@@ -1,34 +1,50 @@
 import sys
 import pandas as pd
 import requests as r
-from time import sleep
+import multiprocessing as mp
+from time import sleep, perf_counter
 from pathlib import Path
 import app.shared_context as sc
-from app.helper import create_index
+from app.helper import create_index, slice_dataframe
 
 
 input_path = Path(__file__).parent.parent / "input"
 images_path = Path(__file__).parent.parent / "images"
 
 
-def download(image_url, list_id=None):
-    img_data = r.get(image_url).content
-    if not list_id:
-        return img_data
-    with open(f"{images_path}/image_{list_id}.jpg", "wb") as handler:
-        handler.write(img_data)
+def download(idx, sdf):
+    dff = pd.read_json(sdf, orient="split")
+    print(f"{idx}- df shape: {dff.shape}")
 
-
-def main(filename="electronics_20220615_original.csv", skip=0):
-    df = pd.read_csv(input_path / filename)
-    print(f"dataframe: {df.shape}")
-    for idx, row in df.iterrows():
-        if int(str(idx)) < skip:
-            continue
+    for i, row in dff.iterrows():
         list_id = row['id']
         image_url = row['image']
-        download(list_id, image_url)
-        print(f"{idx} - image downloaded | {list_id}")
+        # downloading image
+        img_data = r.get(image_url).content
+        with open(images_path / f"image_{list_id}.jpg", "wb") as handler:
+            handler.write(img_data)
+        print(f"...{i} - image downloaded | {list_id}...")
+
+
+def parallel_download():
+    cores = mp.cpu_count()
+    df = pd.read_csv(input_path / "electronics_250k.csv")
+    data_frames = slice_dataframe(df, cores)
+
+    procs = []
+    start_time = perf_counter()
+    for core in range(cores):
+        serialized_df = data_frames[core].to_json(orient="split")
+        proc = mp.Process(target=download, args=(core, serialized_df))
+        procs.append(proc)
+        proc.start()
+
+    # complete the processes
+    for proc in procs:
+        proc.join()
+    end_time = perf_counter()
+    total_time = end_time - start_time
+    print(f"Process took {total_time:.4f} seconds")
 
 
 def run():
