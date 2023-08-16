@@ -26,9 +26,14 @@ def download(idx, sdf):
         print(f"...{i} - image downloaded | {list_id}...")
 
 
-def parallel_download():
+def parallel_download(only_missing=False):
     cores = mp.cpu_count()
     df = pd.read_csv(input_path / "electronics_250k.csv")
+    print(f"original shape: {df.shape}")
+    if only_missing:
+        downloaded_images = [int(image_path.name[6:-4]) for image_path in images_path.glob("*.jpg")]
+        df = df[~df["id"].isin(downloaded_images)]
+        print(f"modified shape: {df.shape}")
     data_frames = slice_dataframe(df, cores)
 
     procs = []
@@ -108,3 +113,4 @@ if __name__ == '__main__':
     sc.api_redis_cli = sc.start_queueing()
     sc.api_logger = sc.start_encoder_logging()
     run()
+    # parallel_download()
