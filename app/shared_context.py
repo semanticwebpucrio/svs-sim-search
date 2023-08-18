@@ -4,7 +4,7 @@ import torch
 import logging
 import uvicorn
 import numpy as np
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 from pathlib import Path
 from fastapi.logger import logger
 from torchvision import transforms
@@ -19,7 +19,7 @@ REDIS_PORT = 6379
 QUEUE_TXT = "txt_queue"
 QUEUE_IMG = "img_queue"
 QUEUE_MAIN = 0  # queue_id responsible to create index
-QUEUES_AVAILABLE = 2
+QUEUES_AVAILABLE = 1
 SEPARATOR = "|###|"
 START_TOKEN = "[STA]"
 END_TOKEN = "[END]"
@@ -83,15 +83,17 @@ def start_encoder_logging():
 
 def encode_image(img_path: Path = None, input_image: Image = None):
     global model_img
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # lazy loading
     if not model_img:
         model_img = torch.hub.load(
-            "pytorch/vision:v0.10.0", "mobilenet_v2", weights=True, map_location=str(device)
+            "pytorch/vision:v0.10.0", "mobilenet_v2", pretrained=True
         )
         model_img.eval()
     if not input_image:
-        input_image = Image.open(img_path)
+        try:
+            input_image = Image.open(img_path)
+        except UnidentifiedImageError as exp:
+            raise FileNotFoundError(f"...ERROR - {type(exp)} | {exp}...")
     preprocess = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
@@ -100,6 +102,10 @@ def encode_image(img_path: Path = None, input_image: Image = None):
     ])
     input_tensor = preprocess(input_image)
     input_batch = input_tensor.unsqueeze(0)  # create a mini-batch as expected by the model
+
+    if torch.cuda.is_available():
+        input_batch = input_batch.to("cuda")
+        model_img.to("cuda")
 
     with torch.no_grad():
         output = model_img(input_batch)

@@ -2,6 +2,7 @@ import sys
 import pandas as pd
 import requests as r
 import multiprocessing as mp
+from redis.exceptions import ConnectionError
 from time import sleep, perf_counter
 from pathlib import Path
 import app.shared_context as sc
@@ -55,21 +56,26 @@ def parallel_download(only_missing=False):
 def run():
     queue_id = int(sys.argv[1]) if len(sys.argv) > 1 else 0
     queue_name = f"{sc.QUEUE_IMG}_{queue_id}"
-    sc.api_logger.info(f"subscribing to redis queue: {queue_name}")
-    p_img = sc.api_redis_cli.pubsub()
-    p_img.subscribe(queue_name)
-
+    sc.api_logger.info(f"consuming from redis streams: {queue_name}")
+    last_id_consumed = 0
     sc.api_logger.info("starting loop")
     num_embeddings = 0
     while True:
-        msg = p_img.get_message()
-        if not msg:
+        try:
+            raw_msg = sc.api_redis_cli.xread(count=1, streams={queue_name: last_id_consumed})
+        except ConnectionError as exp:
+            print(f"...ERROR - {type(exp)} | {exp}...")
+            continue
+        if not raw_msg:
             sc.api_logger.info(f"empty {queue_name} - skipping...")
             sleep(0.5)
             continue
         try:
-            decoded_data = msg.get("data").decode()
-        except (UnicodeDecodeError, AttributeError, ValueError):
+            last_id_consumed = raw_msg[0][1][-1][0]
+            msg = raw_msg[0][1][-1][1]
+            decoded_data = msg.get("data".encode()).decode()
+        except (UnicodeDecodeError, AttributeError, ValueError) as exp:
+            sc.api_logger.info(f"...ERROR - {type(exp)} | {exp}...")
             sc.api_logger.info(f"unicode-decode error detected - skipping")
             sleep(0.5)
             continue
@@ -92,10 +98,19 @@ def run():
                     index_type="HNSW",
                     prefix="img::"
                 )
+                sc.api_logger.info("erasing stream")
+                stream_group = sc.api_redis_cli.xread(streams={queue_name: 0})
+                for streams in stream_group:
+                    stream_name, messages = streams
+                    [sc.api_redis_cli.xdel(stream_name, i[0]) for i in messages]
             break
         key, sentence = decoded_data.split(sc.SEPARATOR)
         filename = f"image_{key}.jpg"
-        embeddings = sc.encode_image(img_path=images_path / filename)
+        try:
+            embeddings = sc.encode_image(img_path=images_path / filename)
+        except FileNotFoundError as exp:
+            print(f"{exp}")
+            continue
         sc.api_logger.info(f"key: {key} | embeddings shape: {embeddings.shape}")
         embeddings_bytes = embeddings.detach().numpy().astype(sc.IMG_EMBEDDING_TYPE).tobytes()
         # bucket = int(key) % sc.BUCKETS
@@ -110,7 +125,7 @@ def run():
 
 
 if __name__ == '__main__':
-    sc.api_redis_cli = sc.start_queueing()
+    sc.api_redis_cli = sc.start_queueing(manually=True)
     sc.api_logger = sc.start_encoder_logging()
     run()
     # parallel_download()
