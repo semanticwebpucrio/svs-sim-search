@@ -1,10 +1,18 @@
 import io
 import redis
+import random
+import base64
 import traceback
+import pandas as pd
+from pathlib import Path
 from PIL import Image
 import app.shared_context as sc
 from fastapi import APIRouter, File, HTTPException
 from redis.commands.search.query import Query
+
+
+input_path = Path(__file__).parent.parent / "input"
+images_path = Path(__file__).parent.parent / "images"
 
 
 router = APIRouter(
@@ -12,6 +20,28 @@ router = APIRouter(
     tags=["searching"],
     responses={404: {"description": "Not found"}},
 )
+
+
+@router.get("/sample")
+def sample(filename: str = "electronics_250k.csv", k: int = 50):
+    try:
+        result = []
+        df = pd.read_csv(input_path / filename)
+        positions = [random.randint(0, df.shape[0]) for _ in range(k)]
+        for pos in positions:
+            row = df.iloc[pos]
+            aux = transform_image(row["caption"], row["id"])
+            result.append(aux)
+        return result
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail="".join(
+                traceback.format_exception(
+                    etype=type(exc), value=exc, tb=exc.__traceback__
+                )
+            )
+        )
 
 
 @router.post("/")
@@ -77,3 +107,13 @@ def retrieve_img(raw: bytes, k: int):
         ]
     }
     return ret
+
+
+def transform_image(caption, image_id):
+    with open(f"{images_path}/image_{image_id}.jpg", "rb") as open_file:
+        byte_content = open_file.read()
+        base64_bytes = base64.b64encode(byte_content)
+        base64_string = base64_bytes.decode('ascii')
+        header = "data:image/jpeg;base64"
+        uri = f"{header},{str(base64_string)}"
+        return {"uri": uri, "text": caption}

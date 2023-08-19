@@ -109,6 +109,7 @@ services:
       - ./app/output:/opt/app/output
       - ./app/routers:/opt/app/routers
       - ./app/services:/opt/app/services
+      - ./app/images:/opt/app/images
     ports:
       - "8080:8080"
     networks:

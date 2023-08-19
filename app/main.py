@@ -1,6 +1,7 @@
 import uvicorn
 import app.shared_context as sc
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.routers import indexing, search
 
 
@@ -12,6 +13,20 @@ def get_application() -> FastAPI:
     )
     app.include_router(indexing.router)
     app.include_router(search.router)
+
+    origins = [
+        "http://localhost",
+        "http://localhost:8080",
+        "http://localhost:63342",
+    ]
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     @app.on_event("startup")
     def startup_event():
