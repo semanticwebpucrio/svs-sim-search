@@ -19,7 +19,7 @@ def timeit(func):
 
 @timeit
 def create_index(vector_field_name,
-                 number_of_vectors,
+                 # number_of_vectors,
                  embedding_dimension,
                  distance_metric,
                  index_type="FLAT",
@@ -34,7 +34,7 @@ def create_index(vector_field_name,
                 "TYPE": "FLOAT32",
                 "DIM": embedding_dimension,
                 "DISTANCE_METRIC": distance_metric,
-                "INITIAL_CAP": number_of_vectors,
+                # "INITIAL_CAP": number_of_vectors,
             }
         ),
         TextField("id"),

@@ -36,16 +36,17 @@ def run():
             continue
         if decoded_data == sc.END_TOKEN:
             sc.api_logger.info("end token detected")
+            sc.api_logger.info(f"{num_embeddings} embeddings inserted")
             sc.api_logger.info("waiting other processes finish")
             sleep(30)
             if queue_id == sc.QUEUE_MAIN:
                 sc.api_logger.info("creating index on redis")
                 create_index(
-                    index_name=f"idx_txt",
+                    index_name="idx_txt",
                     distance_metric=sc.TEXT_DISTANCE_METRIC,
                     vector_field_name="embedding",
                     embedding_dimension=sc.TEXT_EMBEDDING_DIMENSION,
-                    number_of_vectors=num_embeddings,
+                    # number_of_vectors=num_embeddings,
                     index_type="HNSW",
                     prefix="txt::"
                 )

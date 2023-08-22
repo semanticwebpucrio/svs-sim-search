@@ -90,7 +90,7 @@ def run(pattern="txt:*", only_index=False):
           distance_metric=sc.TEXT_DISTANCE_METRIC,
           vector_field_name="embedding",
           embedding_dimension=sc.TEXT_EMBEDDING_DIMENSION,
-          number_of_vectors=50000,
+          # number_of_vectors=50000,
           index_type="HNSW",
           prefix="txt::"
     )
@@ -103,7 +103,7 @@ def run(pattern="txt:*", only_index=False):
             distance_metric=sc.TEXT_DISTANCE_METRIC,
             vector_field_name="embedding",
             embedding_dimension=sc.TEXT_EMBEDDING_DIMENSION,
-            number_of_vectors=bucket_size[bucket],
+            # number_of_vectors=bucket_size[bucket],
             index_type="HNSW",
             prefix=f"txt:{bucket}"
         )
