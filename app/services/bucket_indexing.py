@@ -1,3 +1,4 @@
+import re
 import pandas as pd
 from pathlib import Path
 from ast import literal_eval
@@ -164,6 +165,52 @@ def calculate_metrics(results: dict):
             b = len(flat)
             print(f"HNSW buckets precision@{k} - {a/(a+c)}")
             print(f"HNSW buckets recall@{k} - {a/b}")
+
+@timeit
+def create_buckets(pattern="txt::*", num_buckets=5):
+    regex = r"(?P<list_id>[0-9]+$)"
+    keys = sc.api_redis_cli.keys(pattern)
+    for idx, key in enumerate(keys):
+        elem = sc.api_redis_cli.hgetall(key)
+        bucket = idx % num_buckets
+        sc.api_logger.info(f"{idx} - duplicating key {key.decode()} into bucket {bucket}")
+        match = re.search(regex, key.decode())
+        if not match:
+            continue
+        list_id = match.group("list_id")
+        sc.api_redis_cli.hset(
+            f"txt:{bucket}:{list_id}",
+            mapping={k: elem[k] for k in elem.keys()}
+        )
+    sc.api_logger.info(f"{len(keys)} keys added in {num_buckets} buckets")
+
+
+@timeit
+def create_bucket_txt_index(bucket):
+    idx_name = f"idx_txt_{bucket}"
+    print(f"creating index {idx_name}")
+    create_index(
+        index_name=idx_name,
+        distance_metric=sc.TEXT_DISTANCE_METRIC,
+        vector_field_name="embedding",
+        embedding_dimension=sc.TEXT_EMBEDDING_DIMENSION,
+        index_type="HNSW",
+        prefix=f"txt:{bucket}:"
+    )
+
+
+@timeit
+def create_bucket_img_index(bucket):
+    idx_name = f"idx_img_{bucket}"
+    print(f"creating index {idx_name}")
+    create_index(
+        index_name=idx_name,
+        distance_metric=sc.IMG_DISTANCE_METRIC,
+        vector_field_name="embedding",
+        embedding_dimension=sc.IMG_EMBEDDING_DIMENSION,
+        index_type="HNSW",
+        prefix=f"img:{bucket}:"
+    )
 
 
 if __name__ == '__main__':
