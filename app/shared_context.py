@@ -14,7 +14,7 @@ from sentence_transformers import SentenceTransformer
 # TODO: load values from .env file
 # constants
 REDIS_HOST = "redis"
-REDIS_PORT = 6379
+REDIS_PORT = 6378
 
 QUEUE_TXT = "txt_queue"
 QUEUE_IMG = "img_queue"

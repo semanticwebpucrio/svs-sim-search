@@ -1,4 +1,4 @@
-version: "3.9"
+version: "3.3"
 
 x-txt-encoder:
   &custom_txt_encoder
@@ -43,9 +43,8 @@ services:
     image: redislabs/redisearch:2.8.4
 #    image: redis/redis-stack:edge-arm64
     ports:
-      - "6379:6379"
-#    command: redis-server --maxmemory 16gb --maxmemory-policy allkeys-lru --loadmodule /usr/lib/redis/modules/redisearch.so
-    command: redis-server --maxmemory 7gb --maxmemory-policy allkeys-lru --loadmodule /usr/lib/redis/modules/redisearch.so
+      - "6378:6379"
+    command: redis-server --maxmemory 16gb --maxmemory-policy allkeys-lru --loadmodule /usr/lib/redis/modules/redisearch.so
 
   txt_encoder_0:
     <<: *custom_txt_encoder
