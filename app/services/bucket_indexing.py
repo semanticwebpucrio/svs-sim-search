@@ -11,7 +11,7 @@ from redis.commands.search.query import Query
 def to_redis(key_prefix="txt", file_name="txt_embeddings.parquet", batch_size=10_000):
     regex = r"(?P<list_id>[0-9]+$)"
     output_path = Path.cwd() / "app" / "output"
-    parquet_file = pq.ParquetFile(output_path / filename)
+    parquet_file = pq.ParquetFile(output_path / file_name)
     for batch in parquet_file.iter_batches(batch_size=batch_size):
         print(f"loading batch of embedding - {batch_size}")
         df = batch.to_pandas()
