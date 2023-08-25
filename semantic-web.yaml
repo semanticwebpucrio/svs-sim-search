@@ -1,0 +1,35 @@
+version: "3.3"
+
+services:
+  redis:
+    image: redislabs/redisearch:2.8.4
+    ports:
+      - "6378:6379"
+    command: redis-server --maxmemory 16gb --maxmemory-policy allkeys-lru --loadmodule /usr/lib/redis/modules/redisearch.so
+
+  api:
+    restart: "no"
+    command: api
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./app/dl_models:/opt/app/dl_models
+      - ./app/input:/opt/app/input
+      - ./app/output:/opt/app/output
+      - ./app/routers:/opt/app/routers
+      - ./app/services:/opt/app/services
+      - ./app/images:/opt/app/images
+    ports:
+      - "8080:8080"
+    networks:
+      - default
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    depends_on:
+      - redis
+    stdin_open: true
+    tty: true
