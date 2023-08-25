@@ -1,39 +1,47 @@
 import re
 import pandas as pd
 from pathlib import Path
-from ast import literal_eval
+import pyarrow.parquet as pq
 import app.shared_context as sc
 from app.helper import create_index, timeit
 from redis.commands.search.query import Query
 
 
-def conv(col):
-    return literal_eval(col[1:-1])
-
-
-def to_redis(key_prefix="txt"):
-    output_path = Path(__file__).parent.parent / "output"
-    # with open(output_path / "sample.csv", "r") as file:
-    # for file in output_path.glob("encoded_values_2.csv"):
-    for i in range(1, 21):
-        print(f"Carregando Arquivo {i}")
-        with open(output_path / f"encoded_values_{i}.csv", "r") as file:
-            df = pd.read_csv(
-                file,
-                names=["id", "embedding"],
-                converters={"id": conv, "embedding": conv},
-                header=0,
-                engine="python",
-                sep="#####"
+@timeit
+def to_redis(key_prefix="txt", file_name="txt_embeddings.parquet", batch_size=10_000):
+    regex = r"(?P<list_id>[0-9]+$)"
+    output_path = Path.cwd() / "app" / "output"
+    parquet_file = pq.ParquetFile(output_path)
+    for batch in parquet_file.iter_batches(batch_size=batch_size):
+        print(f"loading batch of embedding - {batch_size}")
+        df = batch.to_pandas()
+        print("iterating over batch dataframe")
+        for idx, row in df.iterrows():
+            match = re.search(regex, key.decode())
+            if not match:
+                continue
+            list_id = match.group("list_id")
+            sc.api_redis_cli.hset(
+                f"{key_prefix}::{list_id}",
+                mapping={k: row[k] for k in row.keys()}
             )
-            for idx, row in df.iterrows():
-                sc.api_redis_cli.hset(
-                    f"{key_prefix}::{row['id']}",
-                    mapping={
-                        "embedding": row['embedding'],
-                        "id": row['id']
-                    }
-                )
+
+
+@timeit
+def from_redis(pattern="txt::*", dest_file_name="txt_embeddings.parquet"):
+    sc.api_logger.info(f"reading keys from Redis - pattern {pattern}")
+    keys = sc.api_redis_cli.keys(pattern)
+    dest = Path.cwd() / dest_file_name
+    rows = []
+    for idx, key in enumerate(keys):
+        sc.api_logger.info(f"{idx} - extracting and converting key {key.decode()}")
+        elem = sc.api_redis_cli.hgetall(key)
+        elem = {key.decode(): val.decode() if key.decode() != "embedding" else val for key, val in elem.items()}
+        rows.append(elem)
+    sc.api_logger.info("generating Pandas dataframe")
+    df = pd.DataFrame(rows)
+    sc.api_logger.info("persisting Pandas dataframe as Parquet")
+    df.to_parquet(dest)
 
 
 @timeit
