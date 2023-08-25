@@ -1,0 +1,9 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redislabs/redisearch:2.8.4
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 32gb --maxmemory-policy allkeys-lru --loadmodule /usr/lib/redis/modules/redisearch.so
+

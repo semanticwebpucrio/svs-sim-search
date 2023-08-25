@@ -44,7 +44,6 @@ services:
 #    image: redis/redis-stack:edge-arm64
     ports:
       - "6379:6379"
-#    command: redis-server --maxmemory 16gb --maxmemory-policy allkeys-lru --loadmodule /usr/lib/redis/modules/redisearch.so
     command: redis-server --maxmemory 7gb --maxmemory-policy allkeys-lru --loadmodule /usr/lib/redis/modules/redisearch.so
 
   txt_encoder_0:
