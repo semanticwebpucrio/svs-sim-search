@@ -9,7 +9,6 @@ from redis.commands.search.query import Query
 
 @timeit
 def to_redis(key_prefix="txt", file_name="txt_embeddings.parquet", batch_size=10_000):
-    regex = r"(?P<list_id>[0-9]+$)"
     output_path = Path.cwd() / "app" / "output"
     parquet_file = pq.ParquetFile(output_path / file_name)
     for batch in parquet_file.iter_batches(batch_size=batch_size):
@@ -17,11 +16,7 @@ def to_redis(key_prefix="txt", file_name="txt_embeddings.parquet", batch_size=10
         df = batch.to_pandas()
         print("iterating over batch dataframe")
         for idx, row in df.iterrows():
-            key = row["id"]
-            match = re.search(regex, key.decode())
-            if not match:
-                continue
-            list_id = match.group("list_id")
+            list_id = row["id"]
             sc.api_redis_cli.hset(
                 f"{key_prefix}::{list_id}",
                 mapping={k: row[k] for k in row.keys()}
