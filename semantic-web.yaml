@@ -1,11 +1,11 @@
-version: "3.3"
+version: "3.9"
 
 services:
   redis:
     image: redislabs/redisearch:2.8.4
     ports:
-      - "6378:6379"
-    command: redis-server --maxmemory 16gb --maxmemory-policy allkeys-lru --loadmodule /usr/lib/redis/modules/redisearch.so
+      - "6379:6379"
+    command: redis-server --maxmemory 32gb --maxmemory-policy allkeys-lru --loadmodule /usr/lib/redis/modules/redisearch.so
 
   api:
     restart: "no"
