@@ -17,6 +17,7 @@ def to_redis(key_prefix="txt", file_name="txt_embeddings.parquet", batch_size=10
         df = batch.to_pandas()
         print("iterating over batch dataframe")
         for idx, row in df.iterrows():
+            key = row["id"]
             match = re.search(regex, key.decode())
             if not match:
                 continue
