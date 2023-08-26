@@ -1,4 +1,3 @@
-import re
 import pandas as pd
 from pathlib import Path
 import pyarrow.parquet as pq
@@ -188,10 +187,7 @@ def create_buckets(pattern="txt::*", num_buckets=5):
                 fpe.write("\n")
             bucket = idx % num_buckets
             sc.api_logger.info(f"{idx} - duplicating key {key.decode()} into bucket {bucket}")
-            match = re.search(regex, key.decode())
-            if not match:
-                continue
-            list_id = match.group("list_id")
+            list_id = row["id".encode()]
             sc.api_redis_cli.hset(
                 f"txt:{bucket}:{list_id}",
                 mapping={k: elem[k] for k in elem.keys()}
