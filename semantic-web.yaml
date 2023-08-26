@@ -5,5 +5,5 @@ services:
     image: redislabs/redisearch:2.8.4
     ports:
       - "6379:6379"
-    command: redis-server --maxmemory 32gb --maxmemory-policy allkeys-lru --loadmodule /usr/lib/redis/modules/redisearch.so
+    command: redis-server --maxmemory-policy noeviction --loadmodule /usr/lib/redis/modules/redisearch.so
 

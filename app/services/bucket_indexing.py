@@ -7,25 +7,25 @@ from redis.commands.search.query import Query
 
 
 @timeit
-def to_redis(key_prefix="txt", file_name="txt_embeddings.parquet", batch_size=10_000):
+def to_redis(key_prefix="txt", file_name="txt_embeddings.parquet", batch_size=10_000, buckets=5):
     output_path = Path.cwd() / "app" / "output"
     parquet_file = pq.ParquetFile(output_path / file_name)
-    with open(output_path / f"to_redis_{key_prefix}.error", "a") as fpe:
-        for batch in parquet_file.iter_batches(batch_size=batch_size):
-            print(f"loading batch of embedding - {batch_size}")
-            df = batch.to_pandas()
-            print("iterating over batch dataframe")
-            for idx, row in df.iterrows():
-                list_id = row["id"]
-                keys = row.keys()
-                if len(keys) == 0:
-                    fpe.write(f"{list_id} => empty values")
-                    fpe.write("\n")
-                    continue
-                sc.api_redis_cli.hset(
-                    f"{key_prefix}::{list_id}",
-                    mapping={k: row[k] for k in keys}
-                )
+    for batch in parquet_file.iter_batches(batch_size=batch_size):
+        print(f"loading batch of embedding - {batch_size}")
+        df = batch.to_pandas()
+        print("iterating over batch dataframe")
+        for idx, row in df.iterrows():
+            list_id = row["id"]
+            keys = row.keys()
+            sc.api_redis_cli.hset(
+                f"{key_prefix}::{list_id}",
+                mapping={k: row[k] for k in keys}
+            )
+            bucket = idx % buckets
+            sc.api_redis_cli.hset(
+                f"{key_prefix}:{bucket}:{list_id}",
+                mapping={k: row[k] for k in keys}
+            )
 
 
 @timeit
@@ -179,15 +179,15 @@ def calculate_metrics(results: dict):
 def create_buckets(pattern="txt::*", num_buckets=5):
     keys = sc.api_redis_cli.keys(pattern)
     output_path = Path.cwd() / "app" / "output"
-    with open(output_path / f"create_buckets_{pattern[:2]}.error") as fpe:
+    with open(output_path / f"create_buckets_{pattern[:3]}.error", "a") as fpe:
         for idx, key in enumerate(keys):
             elem = sc.api_redis_cli.hgetall(key)
-            if not elem:
+            if len(elem.keys()) == 0:
                 fpe.write("{list_id} => empty values")
                 fpe.write("\n")
             bucket = idx % num_buckets
             sc.api_logger.info(f"{idx} - duplicating key {key.decode()} into bucket {bucket}")
-            list_id = row["id".encode()]
+            list_id = elem["id".encode()]
             sc.api_redis_cli.hset(
                 f"txt:{bucket}:{list_id}",
                 mapping={k: elem[k] for k in elem.keys()}
@@ -259,4 +259,7 @@ def create_full_img_index(index_type):
 if __name__ == '__main__':
     sc.api_redis_cli = sc.start_queueing(manually=True)
     sc.api_logger = sc.start_encoder_logging()
+    # delete("txt:*")
+    # delete("img:*")
+    to_redis(key_prefix="txt", file_name="txt_embeddings.parquet")
     to_redis(key_prefix="img", file_name="img_embeddings.parquet")
