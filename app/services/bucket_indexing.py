@@ -11,16 +11,22 @@ from redis.commands.search.query import Query
 def to_redis(key_prefix="txt", file_name="txt_embeddings.parquet", batch_size=10_000):
     output_path = Path.cwd() / "app" / "output"
     parquet_file = pq.ParquetFile(output_path / file_name)
-    for batch in parquet_file.iter_batches(batch_size=batch_size):
-        print(f"loading batch of embedding - {batch_size}")
-        df = batch.to_pandas()
-        print("iterating over batch dataframe")
-        for idx, row in df.iterrows():
-            list_id = row["id"]
-            sc.api_redis_cli.hset(
-                f"{key_prefix}::{list_id}",
-                mapping={k: row[k] for k in row.keys()}
-            )
+    with open(output_path / f"to_redis_{key_prefix}.error", "a") as fpe:
+        for batch in parquet_file.iter_batches(batch_size=batch_size):
+            print(f"loading batch of embedding - {batch_size}")
+            df = batch.to_pandas()
+            print("iterating over batch dataframe")
+            for idx, row in df.iterrows():
+                list_id = row["id"]
+                keys = row.keys()
+                if len(keys) == 0:
+                    fpe.write("{list_id} => empty values")
+                    fpe.write("\n")
+                    continue
+                sc.api_redis_cli.hset(
+                    f"{key_prefix}::{list_id}",
+                    mapping={k: row[k] for k in keys}
+                )
 
 
 @timeit
@@ -256,9 +262,4 @@ def create_full_img_index(index_type):
 if __name__ == '__main__':
     sc.api_redis_cli = sc.start_queueing(manually=True)
     sc.api_logger = sc.start_encoder_logging()
-    print("Iniciando Carregamento dos Arquivos")
-    to_redis()
-    print("Finalizando Carregamento dos Arquivos")
-    print("Iniciando Criacao dos Indices")
-    run(pattern='txt::*', only_index=False)
-    print("Finalizando Criacao dos Indices")
+    to_redis(key_prefix="img", file_name="img_embeddings.parquet")
