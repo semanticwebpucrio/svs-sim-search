@@ -221,7 +221,7 @@ def create_bucket_img_index(bucket):
 def create_full_txt_index(index_type):
     if index_type not in ["FLAT", "HNSW"]:
         raise IndexError("invalid index_type - must be FLAT or HNSW")
-    idx_name = "idx_txt"
+    idx_name = "idx_txt" if index_type == "HNSW" else "idx_txt_flat"
     print(f"creating index {idx_name}")
     create_index(
         index_name=idx_name,
@@ -237,7 +237,7 @@ def create_full_txt_index(index_type):
 def create_full_img_index(index_type):
     if index_type not in ["FLAT", "HNSW"]:
         raise IndexError("invalid index_type - must be FLAT or HNSW")
-    idx_name = "idx_img"
+    idx_name = "idx_img" if index_type == "HNSW" else "idx_img_flat"
     print(f"creating index {idx_name}")
     create_index(
         index_name=idx_name,
