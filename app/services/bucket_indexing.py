@@ -217,6 +217,38 @@ def create_bucket_img_index(bucket):
     )
 
 
+@timeit
+def create_full_txt_index(index_type):
+    if index_type not in ["FLAT", "HNSW"]:
+        raise IndexError("invalid index_type - must be FLAT or HNSW")
+    idx_name = "idx_txt"
+    print(f"creating index {idx_name}")
+    create_index(
+        index_name=idx_name,
+        distance_metric=sc.TEXT_DISTANCE_METRIC,
+        vector_field_name="embedding",
+        embedding_dimension=sc.TEXT_EMBEDDING_DIMENSION,
+        index_type=index_type,
+        prefix="txt::"
+    )
+
+
+@timeit
+def create_full_img_index(index_type):
+    if index_type not in ["FLAT", "HNSW"]:
+        raise IndexError("invalid index_type - must be FLAT or HNSW")
+    idx_name = "idx_img"
+    print(f"creating index {idx_name}")
+    create_index(
+        index_name=idx_name,
+        distance_metric=sc.IMG_DISTANCE_METRIC,
+        vector_field_name="embedding",
+        embedding_dimension=sc.IMG_EMBEDDING_DIMENSION,
+        index_type=index_type,
+        prefix="img::"
+    )
+
+
 if __name__ == '__main__':
     sc.api_redis_cli = sc.start_queueing(manually=True)
     sc.api_logger = sc.start_encoder_logging()
