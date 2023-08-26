@@ -20,7 +20,7 @@ def to_redis(key_prefix="txt", file_name="txt_embeddings.parquet", batch_size=10
                 list_id = row["id"]
                 keys = row.keys()
                 if len(keys) == 0:
-                    fpe.write("{list_id} => empty values")
+                    fpe.write(f"{list_id} => empty values")
                     fpe.write("\n")
                     continue
                 sc.api_redis_cli.hset(
@@ -178,23 +178,24 @@ def calculate_metrics(results: dict):
 
 @timeit
 def create_buckets(pattern="txt::*", num_buckets=5):
-    errors = []
-    regex = r"(?P<list_id>[0-9]+$)"
     keys = sc.api_redis_cli.keys(pattern)
-    for idx, key in enumerate(keys):
-        elem = sc.api_redis_cli.hgetall(key)
-        if not elem:
-            errors.append(key)
-        bucket = idx % num_buckets
-        sc.api_logger.info(f"{idx} - duplicating key {key.decode()} into bucket {bucket}")
-        match = re.search(regex, key.decode())
-        if not match:
-            continue
-        list_id = match.group("list_id")
-        sc.api_redis_cli.hset(
-            f"txt:{bucket}:{list_id}",
-            mapping={k: elem[k] for k in elem.keys()}
-        )
+    output_path = Path.cwd() / "app" / "output"
+    with open(output_path / f"create_buckets_{pattern[:2]}.error") as fpe:
+        for idx, key in enumerate(keys):
+            elem = sc.api_redis_cli.hgetall(key)
+            if not elem:
+                fpe.write("{list_id} => empty values")
+                fpe.write("\n")
+            bucket = idx % num_buckets
+            sc.api_logger.info(f"{idx} - duplicating key {key.decode()} into bucket {bucket}")
+            match = re.search(regex, key.decode())
+            if not match:
+                continue
+            list_id = match.group("list_id")
+            sc.api_redis_cli.hset(
+                f"txt:{bucket}:{list_id}",
+                mapping={k: elem[k] for k in elem.keys()}
+            )
     sc.api_logger.info(f"{len(keys)} keys added in {num_buckets} buckets")
     sc.api_logger.info(f"ERRORS: {len(errors)} - {errors}")
 
