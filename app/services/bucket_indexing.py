@@ -172,10 +172,13 @@ def calculate_metrics(results: dict):
 
 @timeit
 def create_buckets(pattern="txt::*", num_buckets=5):
+    errors = []
     regex = r"(?P<list_id>[0-9]+$)"
     keys = sc.api_redis_cli.keys(pattern)
     for idx, key in enumerate(keys):
         elem = sc.api_redis_cli.hgetall(key)
+        if not elem:
+            errors.append(key)
         bucket = idx % num_buckets
         sc.api_logger.info(f"{idx} - duplicating key {key.decode()} into bucket {bucket}")
         match = re.search(regex, key.decode())
@@ -187,6 +190,7 @@ def create_buckets(pattern="txt::*", num_buckets=5):
             mapping={k: elem[k] for k in elem.keys()}
         )
     sc.api_logger.info(f"{len(keys)} keys added in {num_buckets} buckets")
+    sc.api_logger.info(f"ERRORS: {len(errors)} - {errors}")
 
 
 @timeit
