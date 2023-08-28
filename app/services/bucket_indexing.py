@@ -141,7 +141,7 @@ def query_index_txt(index_name, kws, k):
     q = Query(
             f"*=>[KNN {k} @embedding $query_vector AS score]"
         ).sort_by(
-            "score", asc=False
+            "score", asc=True  # in euclidian distance, zero mean identical values
         ).return_fields(
             "id", "score"
         ).dialect(2)
@@ -163,7 +163,7 @@ def query(k=20, buckets=sc.BUCKETS):
         result_flat_txt = query_index_txt("idx_txt_flat", q["caption"], k_full)
         result_hnsw_txt = query_index_txt("idx_txt", q["caption"], k_full)
         result_buckets_txt = [r for bucket in range(buckets) for r in query_index_txt(f"idx_txt_{bucket}", q["caption"], k_bucket)]
-        result_buckets_txt.sort(key=lambda e: float(e[1]), reverse=True)
+        result_buckets_txt.sort(key=lambda e: float(e[1]))
         result_buckets_txt = result_buckets_txt[:10]
         res = {"id": q["id"]}
         res["txt"] = {"flat": result_flat_txt, "hnsw": result_hnsw_txt, "buckets": result_buckets_txt}
@@ -172,17 +172,16 @@ def query(k=20, buckets=sc.BUCKETS):
     return analysis
 
 
-def calculate_metrics(results: dict):
+def calculate_metrics(results):
     K = (1, 5, 10)
-    queries = list(results.keys())
-    for idx, q in enumerate(queries):
-        print(f"Q{idx + 1} - {q}")
-        flat = results[q]["flat"]["docs"]
-        hnsw = results[q]["hnsw"]["docs"]
-        hnswb = results[q]["hnsw_buckets"]
-        rflat = [set([e["id"][5:] for e in flat[:i]]) for i in K]
-        rhnsw = [set([e["id"][5:] for e in hnsw[:i]]) for i in K]
-        rhnswb = [set([e["id"][6:] for e in hnswb[:i]]) for i in K]
+    for idx, result in enumerate(results):
+        print(f"Q{idx + 1} - {result['id']}")
+        flat = result["txt"]["flat"]
+        hnsw = result["txt"]["hnsw"]
+        hnswb = result["txt"]["buckets"]
+        rflat = [set([e[0][5:] for e in flat[:i]]) for i in K]
+        rhnsw = [set([e[0][5:] for e in hnsw[:i]]) for i in K]
+        rhnswb = [set([e[0][6:] for e in hnswb[:i]]) for i in K]
         for i, k in enumerate(K):
             a = len(rflat[i] & rhnsw[i])
             c = len(rhnsw[i] - rflat[i])
@@ -196,6 +195,7 @@ def calculate_metrics(results: dict):
             b = len(flat)
             print(f"HNSW buckets precision@{k} - {a/(a+c)}")
             print(f"HNSW buckets recall@{k} - {a/b}")
+
 
 @timeit
 def create_buckets(pattern="txt::*", num_buckets=5):
@@ -281,7 +281,7 @@ def create_full_img_index(index_type):
 if __name__ == '__main__':
     sc.api_redis_cli = sc.start_queueing(manually=True)
     sc.api_logger = sc.start_encoder_logging()
-    query()
+    calculate_metrics(query())
     # delete("txt:*")
     # delete("img:*")
     # to_redis(key_prefix="txt", file_name="txt_embeddings.parquet")
