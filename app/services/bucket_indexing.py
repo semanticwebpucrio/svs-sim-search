@@ -182,19 +182,27 @@ def calculate_metrics(results):
         rflat = [set([e[0][5:] for e in flat[:i]]) for i in K]
         rhnsw = [set([e[0][5:] for e in hnsw[:i]]) for i in K]
         rhnswb = [set([e[0][6:] for e in hnswb[:i]]) for i in K]
+        helper = {
+            "HNSW": {"precision@01": None, "precision@05": None, "precision@10": None, "recall@01": None, "recall@05": None, "recall@10": None,},
+            "HNSWB": {"precision@01": None, "precision@05": None, "precision@10": None, "recall@01": None, "recall@05": None, "recall@10": None,},
+        }
         for i, k in enumerate(K):
             a = len(rflat[i] & rhnsw[i])
             c = len(rhnsw[i] - rflat[i])
             # b = len(rflat[i] - rhnsw[i])
             b = len(flat)
-            print(f"HNSW precision@{k} - {a/(a+c)}")
-            print(f"HNSW recall@{k} - {a/b}")
+            helper["HNSW"]["precision@{k}"] = a/(a+c)
+            helper["HNSW"]["recall@{k}"] = a/b
             a = len(rflat[i] & rhnswb[i])
             c = len(rhnswb[i] - rflat[i])
             # b = len(rflat[i] - rhnswb[i])
             b = len(flat)
-            print(f"HNSW buckets precision@{k} - {a/(a+c)}")
-            print(f"HNSW buckets recall@{k} - {a/b}")
+            helper["HNSWB"]["precision@{k}"] = a/(a+c)
+            helper["HNSWB"]["recall@{k}"] = a/b
+        for metric, value in list(helper["HNSW"].items()).sort(key=lambda e: e[0]):
+            print(f"HNSW {metric}: {value}")
+        for metric, value in list(helper["HNSWB"].items()).sort(key=lambda e: e[0]):
+            print(f"HNSWB {metric}: {value}")
 
 
 @timeit
