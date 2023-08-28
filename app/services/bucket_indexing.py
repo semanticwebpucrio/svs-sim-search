@@ -1,4 +1,3 @@
-import pdb
 import json
 import pandas as pd
 from pathlib import Path
@@ -155,25 +154,21 @@ def query_index_txt(index_name, kws, k):
 def query(k=20, buckets=sc.BUCKETS):
     input_path = Path.cwd() / "app" / "input"
     with open(input_path / "query_inputs.json", "r") as file:
-        inputs = json.load(file)
-    analysis = {}
-    for idx, val in inputs.items():
-        k_full = 10 if k > 10 else k
-        k_bucket = k // buckets
+        q_inputs = json.load(file)
+    analysis = []
+    k_full = 10 if k > 10 else k
+    k_bucket = k // buckets
+    for q in q_inputs:
         # txt
-        result_flat_txt = query_index_txt("idx_txt_flat")
-        result_hnsw_txt = query_index_txt("idx_txt")
-        result_buckets_txt = [r for r in query_index_txt(f"idx_txt_{bucket}") for bucket in range(sc.BUCKETS)]
-        breakpoint()
-        # analysis[val["id"]] = {"flat": query_index("idx_txt_flat", val["caption"], k)}
-        # analysis[row["id"]].update({"hnsw": query_index("idx_txt", row["caption"], k)})
-        # bucket_results = []
-        # for bucket in range(sc.BUCKETS):
-        #     results = query_index(f"idx_txt_{bucket}", row["caption"], k // sc.BUCKETS)
-        #     analysis[row["id"]].update({f"hnsw_bucket_{bucket}": results})
-        #     bucket_results += list(results.docs)
-        # bucket_results.sort(key=lambda e: float(e.score))
-        # analysis[row["id"]].update({f"hnsw_buckets": bucket_results})
+        result_flat_txt = query_index_txt("idx_txt_flat", q["caption"], k_full)
+        result_hnsw_txt = query_index_txt("idx_txt", q["caption"], k_full)
+        result_buckets_txt = [r for bucket in range(buckets) for r in query_index_txt(f"idx_txt_{bucket}", q["caption"], k_bucket)]
+        result_buckets_txt.sort(key=lambda e: float(e[1]), reverse=True)
+        result_buckets_txt = result_buckets_txt[:10]
+        res = {"id": q["id"]}
+        res["txt"] = {"flat": result_flat_txt, "hnsw": result_hnsw_txt, "buckets": result_buckets_txt}
+        res["img"] = {}
+        analysis.append(res)
     return analysis
 
 
@@ -286,14 +281,15 @@ def create_full_img_index(index_type):
 if __name__ == '__main__':
     sc.api_redis_cli = sc.start_queueing(manually=True)
     sc.api_logger = sc.start_encoder_logging()
+    query()
     # delete("txt:*")
     # delete("img:*")
     # to_redis(key_prefix="txt", file_name="txt_embeddings.parquet")
     # to_redis(key_prefix="img", file_name="img_embeddings.parquet")
-    for bucket in range(5):
-        create_bucket_txt_index(bucket)
-        create_bucket_img_index(bucket)
-    create_full_txt_index("FLAT")
-    create_full_txt_index("HNSW")
-    create_full_img_index("FLAT")
-    create_full_img_index("HNSW")
+    # for bucket in range(5):
+    #     create_bucket_txt_index(bucket)
+    #     create_bucket_img_index(bucket)
+    # create_full_txt_index("FLAT")
+    # create_full_txt_index("HNSW")
+    # create_full_img_index("FLAT")
+    # create_full_img_index("HNSW")
