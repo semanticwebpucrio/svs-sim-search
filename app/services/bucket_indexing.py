@@ -191,14 +191,14 @@ def calculate_metrics(results):
             c = len(rhnsw[i] - rflat[i])
             # b = len(rflat[i] - rhnsw[i])
             b = len(flat)
-            helper["HNSW"]["precision@{k}"] = a/(a+c)
-            helper["HNSW"]["recall@{k}"] = a/b
+            helper["HNSW"][f"precision@{k}"] = a/(a+c)
+            helper["HNSW"][f"recall@{k}"] = a/b
             a = len(rflat[i] & rhnswb[i])
             c = len(rhnswb[i] - rflat[i])
             # b = len(rflat[i] - rhnswb[i])
             b = len(flat)
-            helper["HNSWB"]["precision@{k}"] = a/(a+c)
-            helper["HNSWB"]["recall@{k}"] = a/b
+            helper["HNSWB"][f"precision@{k}"] = a/(a+c)
+            helper["HNSWB"][f"recall@{k}"] = a/b
         for elem in list(helper["HNSW"].items()).sort(key=lambda e: e[0]):
             metric, value = elem
             print(f"HNSW {metric}: {value}")
