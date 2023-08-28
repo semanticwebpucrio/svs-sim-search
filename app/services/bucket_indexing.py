@@ -199,9 +199,11 @@ def calculate_metrics(results):
             b = len(flat)
             helper["HNSWB"]["precision@{k}"] = a/(a+c)
             helper["HNSWB"]["recall@{k}"] = a/b
-        for metric, value in list(helper["HNSW"].items()).sort(key=lambda e: e[0]):
+        for elem in list(helper["HNSW"].items()).sort(key=lambda e: e[0]):
+            metric, value = elem
             print(f"HNSW {metric}: {value}")
-        for metric, value in list(helper["HNSWB"].items()).sort(key=lambda e: e[0]):
+        for elem in list(helper["HNSWB"].items()).sort(key=lambda e: e[0]):
+            metric, value = elem
             print(f"HNSWB {metric}: {value}")
 
 
