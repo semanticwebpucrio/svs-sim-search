@@ -1,3 +1,5 @@
+import pdb
+import json
 import pandas as pd
 from pathlib import Path
 import pyarrow.parquet as pq
@@ -120,33 +122,58 @@ def run(pattern="txt:*", only_index=False):
 
 
 @timeit
-def query_index(index_name, kws, k):
-    query_vector = sc.load_txt_model().encode(kws).astype(sc.TEXT_EMBEDDING_TYPE).tobytes()
-    q = Query(f"*=>[KNN {k} @embedding $query_vector AS score]") \
-        .sort_by("score", asc=True) \
-        .return_fields("id", "score") \
-        .dialect(2)
+def query_index_img(index_name, img_path, k):
+    query_vector = sc.encode_image(img_path=img_path).astype(sc.IMG_EMBEDDING_TYPE).tobytes()
+    q = Query(
+            f"*=>[KNN {k} @embedding $query_vector AS score]"
+        ).sort_by(
+            "score", asc=False
+        ).return_fields(
+            "id", "score"
+        ).dialect(2)
     params_dict = {"query_vector": query_vector}
     results = sc.api_redis_cli.ft(index_name=index_name).search(q, query_params=params_dict)
-    return results
+    return [(doc.id, doc.score) for doc in results.docs]  # key, score
 
 
 @timeit
-def query(k=20):
-    output_path = Path(__file__).parent.parent / "output"
-    with open(output_path / "query_inputs.csv", "r") as file:
-        df = pd.read_csv(file)
+def query_index_txt(index_name, kws, k):
+    query_vector = sc.load_txt_model().encode(kws).astype(sc.TEXT_EMBEDDING_TYPE).tobytes()
+    q = Query(
+            f"*=>[KNN {k} @embedding $query_vector AS score]"
+        ).sort_by(
+            "score", asc=False
+        ).return_fields(
+            "id", "score"
+        ).dialect(2)
+    params_dict = {"query_vector": query_vector}
+    results = sc.api_redis_cli.ft(index_name=index_name).search(q, query_params=params_dict)
+    return [(doc.id, doc.score) for doc in results.docs]  # key, score
+
+
+@timeit
+def query(k=20, buckets=sc.BUCKETS):
+    input_path = Path.cwd() / "app" / "input"
+    with open(input_path / "query_inputs.json", "r") as file:
+        inputs = json.load(file)
     analysis = {}
-    for idx, row in df.iterrows():
-        analysis[row["id"]] = {"flat": query_index("idx_txt_flat", row["caption"], k)}
-        analysis[row["id"]].update({"hnsw": query_index("idx_txt", row["caption"], k)})
-        bucket_results = []
-        for bucket in range(sc.BUCKETS):
-            results = query_index(f"idx_txt_{bucket}", row["caption"], k // sc.BUCKETS)
-            analysis[row["id"]].update({f"hnsw_bucket_{bucket}": results})
-            bucket_results += list(results.docs)
-        bucket_results.sort(key=lambda e: float(e.score))
-        analysis[row["id"]].update({f"hnsw_buckets": bucket_results})
+    for idx, val in inputs.items():
+        k_full = 10 if k > 10 else k
+        k_bucket = k // buckets
+        # txt
+        result_flat_txt = query_index_txt("idx_txt_flat")
+        result_hnsw_txt = query_index_txt("idx_txt")
+        result_buckets_txt = [r for r in query_index_txt(f"idx_txt_{bucket}") for bucket in range(sc.BUCKETS)]
+        breakpoint()
+        # analysis[val["id"]] = {"flat": query_index("idx_txt_flat", val["caption"], k)}
+        # analysis[row["id"]].update({"hnsw": query_index("idx_txt", row["caption"], k)})
+        # bucket_results = []
+        # for bucket in range(sc.BUCKETS):
+        #     results = query_index(f"idx_txt_{bucket}", row["caption"], k // sc.BUCKETS)
+        #     analysis[row["id"]].update({f"hnsw_bucket_{bucket}": results})
+        #     bucket_results += list(results.docs)
+        # bucket_results.sort(key=lambda e: float(e.score))
+        # analysis[row["id"]].update({f"hnsw_buckets": bucket_results})
     return analysis
 
 
