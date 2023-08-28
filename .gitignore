@@ -163,6 +163,7 @@ app/images/*
 
 app/input/*
 !app/input/.keep
+!app/input/query_inputs.json
 
 app/output/*
 !app/output/.keep
