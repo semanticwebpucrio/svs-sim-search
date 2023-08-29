@@ -169,6 +169,7 @@ def query(k=20, buckets=sc.BUCKETS):
         res["txt"] = {"flat": result_flat_txt, "hnsw": result_hnsw_txt, "buckets": result_buckets_txt}
         res["img"] = {}
         analysis.append(res)
+    print(analysis)
     return analysis
 
 
@@ -182,29 +183,24 @@ def calculate_metrics(results):
         rflat = [set([e[0][5:] for e in flat[:i]]) for i in K]
         rhnsw = [set([e[0][5:] for e in hnsw[:i]]) for i in K]
         rhnswb = [set([e[0][6:] for e in hnswb[:i]]) for i in K]
-        helper = {
-            "HNSW": {"precision@01": None, "precision@05": None, "precision@10": None, "recall@01": None, "recall@05": None, "recall@10": None,},
-            "HNSWB": {"precision@01": None, "precision@05": None, "precision@10": None, "recall@01": None, "recall@05": None, "recall@10": None,},
-        }
+        helper = {"HNSWp": {}, "HNSWr": {}, "HNSWBp": {}, "HNSWBr": {}}
         for i, k in enumerate(K):
             a = len(rflat[i] & rhnsw[i])
             c = len(rhnsw[i] - rflat[i])
             # b = len(rflat[i] - rhnsw[i])
             b = len(flat)
-            helper["HNSW"][f"precision@{k}"] = a/(a+c)
-            helper["HNSW"][f"recall@{k}"] = a/b
+            helper["HNSWp"][f"precision@{k:02d}"] = a/(a+c)
+            helper["HNSWr"][f"recall@{k:02d}"] = a/b
             a = len(rflat[i] & rhnswb[i])
             c = len(rhnswb[i] - rflat[i])
             # b = len(rflat[i] - rhnswb[i])
             b = len(flat)
-            helper["HNSWB"][f"precision@{k}"] = a/(a+c)
-            helper["HNSWB"][f"recall@{k}"] = a/b
-        for elem in list(helper["HNSW"].items()).sort(key=lambda e: e[0]):
-            metric, value = elem
-            print(f"HNSW {metric}: {value}")
-        for elem in list(helper["HNSWB"].items()).sort(key=lambda e: e[0]):
-            metric, value = elem
-            print(f"HNSWB {metric}: {value}")
+            helper["HNSWBp"][f"precision@{k:02d}"] = a/(a+c)
+            helper["HNSWBr"][f"recall@{k:02d}"] = a/b
+        for idx_type in ["HNSWp", "HNSWBp", "HNSWr", "HNSWBr"]:
+            for elem in sorted([(key, val) for key, val in helper[idx_type].items()], key=lambda e: e[0]):
+                metric, value = elem
+                print(f"{idx_type} {metric}: {value}")
 
 
 @timeit
