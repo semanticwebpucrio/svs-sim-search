@@ -153,6 +153,7 @@ def query_index_txt(index_name, kws, k):
 @timeit
 def query(k=20, buckets=sc.BUCKETS):
     input_path = Path.cwd() / "app" / "input"
+    images_path = Path.cwd() / "app" / "images"
     with open(input_path / "query_inputs.json", "r") as file:
         q_inputs = json.load(file)
     analysis = []
@@ -165,9 +166,16 @@ def query(k=20, buckets=sc.BUCKETS):
         result_buckets_txt = [r for bucket in range(buckets) for r in query_index_txt(f"idx_txt_{bucket}", q["caption"], k_bucket)]
         result_buckets_txt.sort(key=lambda e: float(e[1]))
         result_buckets_txt = result_buckets_txt[:10]
+        # img
+        result_flat_img = query_index_img("idx_img_flat", images_path / f"{q['id']}.jpg", k_full)
+        result_hnsw_img = query_index_img("idx_img", images_path / f"{q['id']}.jpg", k_full)
+        result_buckets_img = [r for bucket in range(buckets) for r in query_index_img(f"idx_txt_{bucket}", images_path / f"{q['id']}.jpg", k_bucket)]
+        result_buckets_img.sort(key=lambda e: float(e[1]))
+        result_buckets_img = result_buckets_img[:10]
+        # agg results
         res = {"id": q["id"]}
         res["txt"] = {"flat": result_flat_txt, "hnsw": result_hnsw_txt, "buckets": result_buckets_txt}
-        res["img"] = {}
+        res["img"] = {"flat": result_flat_img, "hnsw": result_hnsw_img, "buckets": result_buckets_img}
         analysis.append(res)
     print(analysis)
     return analysis
