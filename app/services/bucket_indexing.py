@@ -185,32 +185,37 @@ def query(k=20, buckets=sc.BUCKETS):
 
 def calculate_metrics(results):
     K = (1, 5, 10)
-    for idx, result in enumerate(results):
-        print(f"Q{idx + 1} - {result['id']}")
-        flat = result["txt"]["flat"]
-        hnsw = result["txt"]["hnsw"]
-        hnswb = result["txt"]["buckets"]
-        rflat = [set([e[0][5:] for e in flat[:i]]) for i in K]
-        rhnsw = [set([e[0][5:] for e in hnsw[:i]]) for i in K]
-        rhnswb = [set([e[0][6:] for e in hnswb[:i]]) for i in K]
-        helper = {"HNSWp": {}, "HNSWr": {}, "HNSWBp": {}, "HNSWBr": {}}
-        for i, k in enumerate(K):
-            a = len(rflat[i] & rhnsw[i])
-            c = len(rhnsw[i] - rflat[i])
-            # b = len(rflat[i] - rhnsw[i])
-            b = len(flat)
-            helper["HNSWp"][f"precision@{k:02d}"] = a/(a+c)
-            helper["HNSWr"][f"recall@{k:02d}"] = a/b
-            a = len(rflat[i] & rhnswb[i])
-            c = len(rhnswb[i] - rflat[i])
-            # b = len(rflat[i] - rhnswb[i])
-            b = len(flat)
-            helper["HNSWBp"][f"precision@{k:02d}"] = a/(a+c)
-            helper["HNSWBr"][f"recall@{k:02d}"] = a/b
-        for idx_type in ["HNSWp", "HNSWBp", "HNSWr", "HNSWBr"]:
-            for elem in sorted([(key, val) for key, val in helper[idx_type].items()], key=lambda e: e[0]):
-                metric, value = elem
-                print(f"{idx_type} {metric}: {value}")
+    for modal in ["txt", "img"]:
+        print(f"modal :: {modal}")
+        for idx, result in enumerate(results):
+            print(f"Q{idx + 1} - {result['id']}")
+            if not result[modal]:
+                print("skipping => image does not exist")
+                continue
+            flat = result[modal]["flat"]
+            hnsw = result[modal]["hnsw"]
+            hnswb = result[modal]["buckets"]
+            rflat = [set([e[0][5:] for e in flat[:i]]) for i in K]
+            rhnsw = [set([e[0][5:] for e in hnsw[:i]]) for i in K]
+            rhnswb = [set([e[0][6:] for e in hnswb[:i]]) for i in K]
+            helper = {"HNSWp": {}, "HNSWr": {}, "HNSWBp": {}, "HNSWBr": {}}
+            for i, k in enumerate(K):
+                a = len(rflat[i] & rhnsw[i])
+                c = len(rhnsw[i] - rflat[i])
+                # b = len(rflat[i] - rhnsw[i])
+                b = len(flat)
+                helper["HNSWp"][f"precision@{k:02d}"] = a/(a+c)
+                helper["HNSWr"][f"recall@{k:02d}"] = a/b
+                a = len(rflat[i] & rhnswb[i])
+                c = len(rhnswb[i] - rflat[i])
+                # b = len(rflat[i] - rhnswb[i])
+                b = len(flat)
+                helper["HNSWBp"][f"precision@{k:02d}"] = a/(a+c)
+                helper["HNSWBr"][f"recall@{k:02d}"] = a/b
+            for idx_type in ["HNSWp", "HNSWBp", "HNSWr", "HNSWBr"]:
+                for elem in sorted([(key, val) for key, val in helper[idx_type].items()], key=lambda e: e[0]):
+                    metric, value = elem
+                    print(f"{idx_type} {metric}: {value}")
 
 
 @timeit
