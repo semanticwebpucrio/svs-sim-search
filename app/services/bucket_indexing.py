@@ -122,11 +122,11 @@ def run(pattern="txt:*", only_index=False):
 
 @timeit
 def query_index_img(index_name, img_path, k):
-    query_vector = sc.encode_image(img_path=img_path).astype(sc.IMG_EMBEDDING_TYPE).tobytes()
+    query_vector = sc.encode_image(img_path=img_path).numpy().astype(sc.IMG_EMBEDDING_TYPE).tobytes()
     q = Query(
             f"*=>[KNN {k} @embedding $query_vector AS score]"
         ).sort_by(
-            "score", asc=False
+            "score", asc=True  # in euclidian distance, zero mean identical values
         ).return_fields(
             "id", "score"
         ).dialect(2)
@@ -160,22 +160,24 @@ def query(k=20, buckets=sc.BUCKETS):
     k_full = 10 if k > 10 else k
     k_bucket = k // buckets
     for q in q_inputs:
+        res = {"id": q["id"]}
         # txt
         result_flat_txt = query_index_txt("idx_txt_flat", q["caption"], k_full)
         result_hnsw_txt = query_index_txt("idx_txt", q["caption"], k_full)
         result_buckets_txt = [r for bucket in range(buckets) for r in query_index_txt(f"idx_txt_{bucket}", q["caption"], k_bucket)]
         result_buckets_txt.sort(key=lambda e: float(e[1]))
         result_buckets_txt = result_buckets_txt[:10]
-        # img
-        result_flat_img = query_index_img("idx_img_flat", images_path / f"{q['id']}.jpg", k_full)
-        result_hnsw_img = query_index_img("idx_img", images_path / f"{q['id']}.jpg", k_full)
-        result_buckets_img = [r for bucket in range(buckets) for r in query_index_img(f"idx_txt_{bucket}", images_path / f"{q['id']}.jpg", k_bucket)]
-        result_buckets_img.sort(key=lambda e: float(e[1]))
-        result_buckets_img = result_buckets_img[:10]
-        # agg results
-        res = {"id": q["id"]}
         res["txt"] = {"flat": result_flat_txt, "hnsw": result_hnsw_txt, "buckets": result_buckets_txt}
-        res["img"] = {"flat": result_flat_img, "hnsw": result_hnsw_img, "buckets": result_buckets_img}
+        # img
+        img_path = images_path / f"image_{q['id']}.jpg"
+        res["img"] = {}
+        if img_path.exists():
+            result_flat_img = query_index_img("idx_img_flat", img_path, k_full)
+            result_hnsw_img = query_index_img("idx_img", img_path, k_full)
+            result_buckets_img = [r for bucket in range(buckets) for r in query_index_img(f"idx_img_{bucket}", img_path, k_bucket)]
+            result_buckets_img.sort(key=lambda e: float(e[1]))
+            result_buckets_img = result_buckets_img[:10]
+            res["img"] = {"flat": result_flat_img, "hnsw": result_hnsw_img, "buckets": result_buckets_img}
         analysis.append(res)
     print(analysis)
     return analysis
