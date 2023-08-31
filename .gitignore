@@ -167,6 +167,8 @@ app/input/*
 
 app/output/*
 !app/output/.keep
+!app/output/calculate_metrics.log
+!app/output/query_analysis.json
 
 app/dl_models/*
 !app/dl_models/.keep
