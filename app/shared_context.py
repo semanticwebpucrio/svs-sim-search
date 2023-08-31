@@ -8,6 +8,7 @@ from PIL import Image, UnidentifiedImageError
 from pathlib import Path
 from fastapi.logger import logger
 from torchvision import transforms
+from torchvision.models.mobilenetv2 import MobileNet_V2_Weights
 from sentence_transformers import SentenceTransformer
 
 
@@ -86,8 +87,14 @@ def encode_image(img_path: Path = None, input_image: Image = None):
     # lazy loading
     if not model_img:
         model_img = torch.hub.load(
-            "pytorch/vision:v0.10.0", "mobilenet_v2", pretrained=True
+            "pytorch/vision:v0.10.0", "mobilenet_v2", weights=MobileNet_V2_Weights.IMAGENET1K_V1
         )
+        ###
+        # uncomment following code for running on semanticweb server
+        # model_img = torch.hub.load("/home/jpinheiro/.cache/torch/hub/pytorch_vision_v0.10.0", "mobilenet_v2", source='local')
+        # state_dict = torch.load("/home/jpinheiro/.cache/torch/hub/checkpoints/mobilenet_v2-b0353104.pth")
+        # model_img.load_state_dict(state_dict)
+        ###
         model_img.eval()
     if not input_image:
         try:
